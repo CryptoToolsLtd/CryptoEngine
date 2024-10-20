@@ -1,0 +1,38 @@
+Generating crypto keypair...
+Generating signature keypair...
+My Name: Vũ Tùng Lâm 22028235
+Your Friend's Name: Lê Thành Đạt 22028189
+Vũ Tùng Lâm 22028235's Public Key for Encryption (PKE):
+      K1 = (136139407, 68069704, 119418757)
+Vũ Tùng Lâm 22028235's Public Key for Verification (PKV):
+      k2 = (1607, 804, 887)
+
+Please enter Lê Thành Đạt 22028189's PKE
+Enter p: 193942327 
+Enter alpha: 96971164 
+Enter beta: 107007135
+Please enter Lê Thành Đạt 22028189's PKV
+Enter p: 1289 
+Enter alpha: 646
+Enter beta: 925
+Text message to send: B
+SEND:
+Send encrypted message: ElGamalCiphertext((ElGamalCiphertextPair(y1=4474866, y2=65860503), ElGamalCiphertextPair(y1=0, y2=0)))
+Send encrypted signature: ElGamalCiphertext((ElGamalCiphertextPair(y1=43354869, y2=117428595), ElGamalCiphertextPair(y1=46245024, y2=25577856)))
+RECEIVE:
+Enter received encrypted message
+Enter pair 1
+Enter y1: 24702038
+Enter y2: 101551699
+Enter pair 2
+Enter y1: 0
+Enter y2: 0
+Enter received encrypted signature
+Enter pair 1
+Enter y1: 124020967
+Enter y2: 14675025
+Enter pair 2
+Enter y1: 133956461
+Enter y2: 67781928
+OK, message is: Z ; plaintext number is Z
+
