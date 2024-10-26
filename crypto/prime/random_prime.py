@@ -3,27 +3,11 @@ sys.set_int_max_str_digits(2147483647) # 2^31 - 1
 
 from .is_prime import is_prime
 from ..CHECK_TESTING import CHECK_TESTING
+from .boundaries import compute_lbound_ubound
 from random import randrange
 
-def random_prime(ubound: int|str, lbound: int|str) -> int:
-    if isinstance(lbound, str):
-        if lbound.endswith('b'):
-            lbound = lbound[:-1]
-            lbound = 2 ** int(lbound) # Pylance could not guaranteet this is int, so we need the following line:
-            lbound = int(lbound)
-        else:
-            lbound = int(lbound)
-    
-    if isinstance(ubound, str):
-        if ubound.endswith('b'):
-            ubound = ubound[:-1]
-            ubound = 2 ** int(ubound)
-            ubound = int(ubound)
-        else:
-            ubound = int(ubound)
-    
-    if lbound >= ubound:
-        raise ValueError(f"lbound must be less than ubound")
+def random_prime(lbound: int|str, ubound: int|str) -> int:
+    lbound, ubound = compute_lbound_ubound(lbound, ubound)
 
     n = randrange(lbound, ubound)
     while not is_prime(n):
@@ -56,4 +40,4 @@ if __name__ == "__main__":
     
     print(f"Random prime between {lbound} and {ubound}:")
     print()
-    print(random_prime(ubound, lbound))
+    print(random_prime(lbound=lbound, ubound=ubound))

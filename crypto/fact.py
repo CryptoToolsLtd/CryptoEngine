@@ -1,6 +1,6 @@
 import sys, unittest
 from .int_sqrt import int_sqrt
-from .prime import is_prime
+from .prime.is_prime import is_prime
 from .CHECK_TESTING import CHECK_TESTING
 
 MAX_INT_OF_FLOAT = 2**40 - 1

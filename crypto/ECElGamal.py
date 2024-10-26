@@ -51,6 +51,7 @@ class ECElGamalCiphertext:
 def ask_elliptic_curve_interactively() -> EllipticCurve:
     print("Enter parameters of the elliptic curve y^2 = x^3 + ax + b mod p")
     p = int(input("    Enter p: "))
+    p_is_prime = is_prime(p) is not False
     a = int(input("    Enter a: "))
     b = int(input("    Enter b: "))
     print("    Enter P (starting point): ")
@@ -58,7 +59,7 @@ def ask_elliptic_curve_interactively() -> EllipticCurve:
         int(input("        x: ")),
         int(input("        y: "))
     )
-    ec = EllipticCurve(p, a, b, P)
+    ec = EllipticCurve(p, p_is_prime, a, b, P)
     return ec
 
 def str_to_ECElGamalPlaintext(ec: EllipticCurve, string: str) -> ECElGamalPlaintext:
@@ -83,7 +84,7 @@ class ECElGamalCryptoSystem(CryptoSystem[
 ]):
     @override
     def generate_keypair(self) -> tuple[ECElGamalPublicKey, ECElGamalPrivateKey]:
-        ec = generate_elliptic_curve_with_number_of_points_being_prime(13)
+        ec = generate_elliptic_curve_with_number_of_points_being_prime(18)
         s = randrange(ec.p // 2, ec.p)
         B = ec.get_point_by_index(s)
         pub = ECElGamalPublicKey(ec, B)

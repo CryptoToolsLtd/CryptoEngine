@@ -1,5 +1,10 @@
+CRYPTO_BITS = 1024
+SIGNATURE_BITS = 128 # Signature bits must be less than CRYPTO_BITS, otherwise the signature may not be able to be verified properly
+
+GRANULARITY = 10
+
 RIGHT_PADDING_SIZE = 2
-LEFT_PADDING_SIZE = 3
+LEFT_PADDING_SIZE = 5
 
 import sys
 sys.set_int_max_str_digits(2147483647)
@@ -11,32 +16,33 @@ import unittest
 from .extended_euclidean import inverse
 from .modpower import modpower
 from .strint import str2int, int2str
-from .primitive_root import is_primitive_root
-from .prime import random_prime
+from .primitive_root import is_primitive_root_fast
+from .random_prime_with_fact_of_p_minus_1 import random_prime_with_fact_of_p_minus_1
 from .pubkeyops import CryptoSystem, CryptoSystemTest, SignatureSystem, SignatureSystemTest, CryptoSystemAndSignatureSystemTest, PubkeyCommunicationDriver
 
 from .CHECK_TESTING import CHECK_TESTING
 
-def convert_plaintext_to_primitive_root(p: int, original_number: int) -> int:
+def convert_plain_number_to_primitive_root(p: int, original_number: int, fact_of_p_minus_1: dict[int, int]) -> int:
     K = original_number.bit_length() + (LEFT_PADDING_SIZE - 1) + RIGHT_PADDING_SIZE
     left_pad_base = (1 << (K + 1))
     x = left_pad_base + original_number << RIGHT_PADDING_SIZE
     for left_pad_additional in range(0, 2 ** (LEFT_PADDING_SIZE - 1)):
         for right_pad in range(0, 2 ** RIGHT_PADDING_SIZE):
                 candidate = (left_pad_additional << K) + x + right_pad
-                if is_primitive_root(p, candidate):
+                if is_primitive_root_fast(p, candidate, fact_of_p_minus_1):
                     return candidate
     raise RuntimeError(f"Could not find a valid primitive root modulo p = {p} substituting original_number = {original_number}")
 
-def convert_primitive_root_to_plaintext(primitive_root: int) -> int:
+def convert_primitive_root_to_plain_number(primitive_root: int) -> int:
     x = primitive_root >> RIGHT_PADDING_SIZE
     x = x & ((1 << (x.bit_length() - LEFT_PADDING_SIZE - 1)) - 1)
     return x
 
-class TestPrimitiveRootAndPlaintextConversions(unittest.TestCase):
+from .fact import fact
+class TestPrimitiveRootAndPlainNumberConversions(unittest.TestCase):
     def test_validity(self):
         def i(p: int, original: int):
-            actual = convert_primitive_root_to_plaintext(convert_plaintext_to_primitive_root(p, original))
+            actual = convert_primitive_root_to_plain_number(convert_plain_number_to_primitive_root(p, original, fact(p - 1)))
             self.assertEqual(actual, original, f'p = {p}, expected = {original}, actual = {actual}')
         i(17, 5)
         i(17, 6)
@@ -46,54 +52,58 @@ class TestPrimitiveRootAndPlaintextConversions(unittest.TestCase):
         i(6106151, 7)
 
 class ElGamalPlaintext:
-    def __init__(self, plain_numbers: tuple[int, int]):
-        self.plain_numbers = plain_numbers
+    def __init__(self, plain_numbers: list[int]):
+        self.plain_numbers = list(plain_numbers)
     
-    def has_second_number(self) -> bool:
-        return self.plain_numbers[1] != 0
-
     def __str__(self) -> str:
-        words: list[str] = []
-
+        result = ""
         for plain_number in self.plain_numbers:
-            words.append(int2str(plain_number))
-
-        return " ".join(words).rstrip()
+            result += int2str(plain_number)
+        return result
     
     def __repr__(self) -> str:
         return f"ElGamalPlaintext({self.plain_numbers})"
     
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, int):
-            return self.plain_numbers[0] == other
         if not isinstance(other, ElGamalPlaintext):
             return False
-        return self.plain_numbers == other.plain_numbers
+        N = len(self.plain_numbers)
+        if N != len(other.plain_numbers):
+            return False
+        for i in range(0, N):
+            if self.plain_numbers[i] != other.plain_numbers[i]:
+                return False
+        return True
     
     @staticmethod
     def from_string(s: str) -> "ElGamalPlaintext":
-        words = s.split(" ")
-        if len(words) > 2:
-            raise ValueError("ElGamalPlaintext can only contain 2 words")
-        
-        plain_numbers: list[int] = []
-        for word in words:
-            i = str2int(word)
-            plain_numbers.append(i)
-        
-        while len(plain_numbers) < 2:
-            plain_numbers.append(0)
+        plain_numbers: list[int] = []        
 
-        return ElGamalPlaintext((plain_numbers[0], plain_numbers[1]))
+        accumulation = ""
+        for char in s:
+            if not char.isalpha():
+                raise ValueError("ElGamalPlaintext can only contain alphabetic characters")
+            char = char.upper()
+            accumulation += char
+            if len(accumulation) == GRANULARITY:
+                plain_numbers.append(str2int(accumulation))
+                accumulation = ""
+        
+        if len(accumulation) > 0:
+            plain_numbers.append(str2int(accumulation))
+
+        return ElGamalPlaintext(plain_numbers)
 
 class TestElGamalPlaintext(unittest.TestCase):
     def test_validity(self):
-        def i(s: str, expected: str):
+        def i(s: str):
+            expected = s
             actual = str(ElGamalPlaintext.from_string(s))
             self.assertEqual(actual, expected, f'expected = {expected}, actual = {actual}')
-        i("HELLO WORLD", "HELLO WORLD")
-        i("HELLO", "HELLO")
-        i(" WORLD", " WORLD")
+        i("HELLOWORLD")
+        i("HELLO")
+        i("WORLD")
+        i("INSANELYLONGMESSAGE")
 
 class ElGamalCiphertextPair:
     def __init__(self, y1: int, y2: int):
@@ -101,73 +111,88 @@ class ElGamalCiphertextPair:
         self.y2 = y2
     
     def __repr__(self) -> str:
-        return f"ElGamalCiphertextPair(y1={self.y1}, y2={self.y2})"
+        return f"ElGamalCiphertextPair(y1 = {self.y1}, y2 = {self.y2})"
 
 class ElGamalCiphertext:
-    def __init__(self, cipher_pairs: tuple[ElGamalCiphertextPair, ElGamalCiphertextPair]):
-        self.cipher_pairs = cipher_pairs
+    def __init__(self, cipher_pairs: list[ElGamalCiphertextPair]):
+        self.cipher_pairs = list(cipher_pairs)
     
     def __repr__(self) -> str:
-        return f"ElGamalCiphertext(({self.cipher_pairs[0]}, {self.cipher_pairs[1]}))"
+        return f"ElGamalCiphertext(\n    {'\n    '.join([str(x) for x in self.cipher_pairs])}\n)"
 
-def ElGamal_generate_keypair(pbits: int) -> tuple[tuple[int, int, int], tuple[int, int]]:
-    p = random_prime(lbound=f"{pbits}b", ubound=f"{pbits + 1}b")
-    alpha = p // 2
-    while not is_primitive_root(alpha, p):
+def ElGamal_generate_keypair(pbits: int) -> tuple[tuple[int, int, int], tuple[int, int], dict[int, int]]:
+    p, fact_of_p_minus_1 = random_prime_with_fact_of_p_minus_1(lbound=f"{pbits}b", ubound=f"{pbits + 1}b")
+    # alpha = p // 2
+    alpha = 2
+    while not is_primitive_root_fast(alpha, p, fact_of_p_minus_1):
         alpha += 1
-    a = random_prime(lbound=p // 3, ubound=p - 1)
+    a = random_prime_with_fact_of_p_minus_1(lbound=p // 3, ubound=p - 1)[0]
     beta = modpower(alpha, a, p)
 
-    return (p, alpha, beta), (p, a)
+    return (p, alpha, beta), (p, a), fact_of_p_minus_1
+
+class ElGamalCryptoPublicKey:
+    def __init__(self, p: int, alpha: int, beta: int, fact_of_p_minus_1: dict[int, int]):
+        self.p = p
+        self.alpha = alpha
+        self.beta = beta
+        self.fact_of_p_minus_1 = dict(fact_of_p_minus_1)
+    
+    def __repr__(self) -> str:
+        return f"ElGamalCryptoPublicKey(p = {self.p}, alpha = {self.alpha}, beta = {self.beta})"
+
+class ElGamalCryptoPrivateKey:
+    def __init__(self, p: int, a: int):
+        self.p = p
+        self.a = a
+    
+    def __repr__(self) -> str:
+        return f"ElGamalCryptoPrivateKey(p = {self.p}, a = {self.a})"
 
 class ElGamalCryptoSystem(CryptoSystem[
-    tuple[int, int, int],   # CryptoPublicKey
-    tuple[int, int],        # CryptoPrivateKey
-    ElGamalCiphertext,      # Ciphertext
-    ElGamalPlaintext,       # Plaintext
+    ElGamalCryptoPublicKey,
+    ElGamalCryptoPrivateKey,
+    ElGamalCiphertext,
+    ElGamalPlaintext,
 ]):
     @override
-    def generate_keypair(self) -> tuple[tuple[int, int, int], tuple[int, int]]:
+    def generate_keypair(self) -> tuple[ElGamalCryptoPublicKey, ElGamalCryptoPrivateKey]:
         # Note: if pbits is too small, the cryptosystem may not work properly
         # (e.g. the plaintext may not be able to be encrypted or decrypted properly)
         # due to modulo p operations.
-        return ElGamal_generate_keypair(27)
+        (p, alpha, beta), (p, a), fact_of_p_minus_1 = ElGamal_generate_keypair(CRYPTO_BITS)
+        return ElGamalCryptoPublicKey(p, alpha, beta, fact_of_p_minus_1), ElGamalCryptoPrivateKey(p, a)
     
     @override
-    def ask_public_key_interactively(self, prompt: str|None = None) -> tuple[int, int, int]:
+    def ask_public_key_interactively(self, prompt: str|None = None) -> ElGamalCryptoPublicKey:
         print(prompt)
         p = int(input("Enter p: "))
         alpha = int(input("Enter alpha: "))
         beta = int(input("Enter beta: "))
-        return p, alpha, beta
+        return ElGamalCryptoPublicKey(p, alpha, beta, fact(p - 1)) # TODO: do partner need to share fact_of_p_minus_1?
     
     @override
-    def ask_plain_text_interactively(self, public_key: tuple[int, int, int], prompt: str|None = None) -> ElGamalPlaintext:
+    def ask_plain_text_interactively(self, public_key: ElGamalCryptoPublicKey, prompt: str|None = None) -> ElGamalPlaintext:
         s = input((prompt or "Enter plaintext") + " (as string): ")
         return ElGamalPlaintext.from_string(s)
 
     @override
-    def ask_cipher_text_interactively(self, private_key: tuple[int, int], prompt: str|None = None) -> ElGamalCiphertext:
+    def ask_cipher_text_interactively(self, private_key: ElGamalCryptoPrivateKey, prompt: str|None = None) -> ElGamalCiphertext:
         print(prompt)
-        print("Enter pair 1")
-        y1 = int(input("Enter y1: "))
-        y2 = int(input("Enter y2: "))
-        print("Enter pair 2")
-        z1 = int(input("Enter y1: "))
-        z2 = int(input("Enter y2: "))
-        return ElGamalCiphertext((
-            ElGamalCiphertextPair(y1, y2),
-            ElGamalCiphertextPair(z1, z2),
-        ))
+        N = int(input("Enter number of pairs: "))
+        cipher_pairs: list[ElGamalCiphertextPair] = []
+        for i in range(0, N):
+            print(f"Enter pair {i + 1}: ")
+            y1 = int(input("Enter y1: "))
+            y2 = int(input("Enter y2: "))
+            cipher_pairs.append(ElGamalCiphertextPair(y1, y2))
+        return ElGamalCiphertext(cipher_pairs)
     
     @override
-    def encrypt(self, public_key: tuple[int, int, int], plain_text: ElGamalPlaintext) -> ElGamalCiphertext:
-        p, alpha, beta = public_key
+    def encrypt(self, public_key: ElGamalCryptoPublicKey, plain_text: ElGamalPlaintext) -> ElGamalCiphertext:
+        p, alpha, beta, fact_of_p_minus_1 = public_key.p, public_key.alpha, public_key.beta, public_key.fact_of_p_minus_1
         def encrypt_number(plain_number: int) -> ElGamalCiphertextPair:
-            if plain_number == 0:
-                return ElGamalCiphertextPair(0, 0)
-            
-            n = convert_plaintext_to_primitive_root(p, plain_number)
+            n = convert_plain_number_to_primitive_root(p, plain_number, fact_of_p_minus_1)
 
             one_per_n = inverse(n, p)
             if one_per_n is None:
@@ -179,131 +204,173 @@ class ElGamalCryptoSystem(CryptoSystem[
 
             return ElGamalCiphertextPair(y1, y2)
         
-        cipher_pairs = encrypt_number(plain_text.plain_numbers[0]), encrypt_number(plain_text.plain_numbers[1])
+        cipher_pairs = [ encrypt_number(plain_number) for plain_number in plain_text.plain_numbers ]
         return ElGamalCiphertext(cipher_pairs)
     
     @override
-    def decrypt(self, private_key: tuple[int, int], cipher_text: ElGamalCiphertext) -> ElGamalPlaintext:
-        p, a = private_key
+    def decrypt(self, private_key: ElGamalCryptoPrivateKey, cipher_text: ElGamalCiphertext) -> ElGamalPlaintext:
+        p, a = private_key.p, private_key.a
         def decrypt_number(cipher_pair: ElGamalCiphertextPair) -> int:
             y1 = cipher_pair.y1
             y2 = cipher_pair.y2
-            if y1 == 0 and y2 == 0:
-                return 0
-            x = y2 * modpower(y1, p - 1 - a, p) % p
-            return convert_primitive_root_to_plaintext(x)
+            # x = y2 * modpower(y1, p - 1 - a, p) % p
+            s = modpower(y1, a, p)
+            s = inverse(s, p)
+            if s is None:
+                raise RuntimeError(f"Could not find s such that y1^a * s = 1 mod p. y1 = {y1}, a = {a}, p = {p}")
+            x = y2 * s % p
+            return convert_primitive_root_to_plain_number(x)
         
-        plain_numbers = decrypt_number(cipher_text.cipher_pairs[0]), decrypt_number(cipher_text.cipher_pairs[1])
+        plain_numbers = [ decrypt_number(cipher_pair) for cipher_pair in cipher_text.cipher_pairs ]
         return ElGamalPlaintext(plain_numbers)
 
     @override
-    def str2plaintext(self, public_key: tuple[int, int, int], string: str) -> ElGamalPlaintext:
+    def str2plaintext(self, public_key: ElGamalCryptoPublicKey, string: str) -> ElGamalPlaintext:
         plain_text = ElGamalPlaintext.from_string(string)
         return plain_text
     
     @override
-    def plaintext2str(self, private_key: tuple[int, int], plain_text: ElGamalPlaintext) -> str:
+    def plaintext2str(self, private_key: ElGamalCryptoPrivateKey, plain_text: ElGamalPlaintext) -> str:
         return str(plain_text)
 
 class ElGamalSignature(ElGamalPlaintext):
-    def __init__(self, p: int, gamma: int, delta: int):
-        super().__init__((gamma, delta))
+    def get_gamma_of_number_by_index(self, index: int) -> int:
+        return self.plain_numbers[2 * index]
     
-    def get_gamma(self) -> int:
-        return self.plain_numbers[0]
+    def get_delta_of_number_by_index(self, index: int) -> int:
+        return self.plain_numbers[2 * index + 1]
+
+class ElGamalSignatureSignerKey:
+    def __init__(self, p: int, alpha: int, a: int, fact_of_p_minus_1: dict[int, int]):
+        self.p = p
+        self.alpha = alpha
+        self.a = a
+        self.fact_of_p_minus_1 = dict(fact_of_p_minus_1)
     
-    def get_delta(self) -> int:
-        return self.plain_numbers[1]
+    def __repr__(self) -> str:
+        return f"ElGamalSignatureSignerKey(p = {self.p}, alpha = {self.alpha}, a = {self.a})"
+
+class ElGamalSignatureVerifierKey:
+    def __init__(self, p: int, alpha: int, beta: int, fact_of_p_minus_1: dict[int, int]):
+        self.p = p
+        self.alpha = alpha
+        self.beta = beta
+        self.fact_of_p_minus_1 = dict(fact_of_p_minus_1)
+    
+    def __repr__(self) -> str:
+        return f"ElGamalSignatureVerifierKey(p = {self.p}, alpha = {self.alpha}, beta = {self.beta})"
 
 class ElGamalSignatureSystem(SignatureSystem[
-    tuple[int, int, int],                           # SignatureSignerKey (p, alpha, a)
-    tuple[int, int, int],                           # SignatureVerifierKey (p, alpha, beta)
-    ElGamalPlaintext,                               # Plaintext
-    ElGamalSignature,                               # Signature
+    ElGamalSignatureSignerKey,
+    ElGamalSignatureVerifierKey,
+    ElGamalPlaintext,
+    ElGamalSignature,
 ]):
     @override
-    def generate_keypair(self) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
-        (p, alpha, beta), (p, a) = ElGamal_generate_keypair(10)
-        return (p, alpha, a), (p, alpha, beta)
+    def generate_keypair(self) -> tuple[ElGamalSignatureSignerKey, ElGamalSignatureVerifierKey]:
+        (p, alpha, beta), (p, a), fact_of_p_minus_1 = ElGamal_generate_keypair(SIGNATURE_BITS)
+        return ElGamalSignatureSignerKey(p, alpha, a, fact_of_p_minus_1), ElGamalSignatureVerifierKey(p, alpha, beta, fact_of_p_minus_1)
     
     @override
-    def ask_verification_key_interactively(self, prompt: str|None = None) -> tuple[int, int, int]:
+    def ask_verification_key_interactively(self, prompt: str|None = None) -> ElGamalSignatureVerifierKey:
         print(prompt)
         p = int(input("Enter p: "))
         alpha = int(input("Enter alpha: "))
         beta = int(input("Enter beta: "))
-        return p, alpha, beta
+        return ElGamalSignatureVerifierKey(p, alpha, beta, fact(p - 1)) # TODO: do partner need to share fact_of_p_minus_1?
     
     @override
-    def sign(self, signer_key: tuple[int, int, int], plain_text: ElGamalPlaintext) -> ElGamalSignature:
-        if plain_text.has_second_number():
-            raise ValueError("Cannot sign this type of plaintext.")
-
-        p, alpha, a = signer_key
+    def sign(self, signer_key: ElGamalSignatureSignerKey, plain_text: ElGamalPlaintext) -> ElGamalSignature:
+        p, alpha, a, fact_of_p_minus_1 = signer_key.p, signer_key.alpha, signer_key.a, signer_key.fact_of_p_minus_1
         p_1 = p - 1
-        x = convert_plaintext_to_primitive_root(p, plain_text.plain_numbers[0])
 
-        k = randrange(2, p_1)
-        one_per_k = inverse(k, p_1)
-        while one_per_k is None:
-            k = (k + 1) % (p_1)
+        def sign_number(plain_number: int) -> tuple[int, int]:
+            x = convert_plain_number_to_primitive_root(p, plain_number, fact_of_p_minus_1)
+
+            k = randrange(2, p_1)
             one_per_k = inverse(k, p_1)
-        # while True:
-        #     k = random_prime(lbound=2, ubound=p_1 - 1)
-        #     one_per_k = inverse(k, p_1)
-        #     if one_per_k is not None:
-        #         break
+            while one_per_k is None:
+                k = (k + 1) % (p_1)
+                one_per_k = inverse(k, p_1)
+            # while True:
+            #     k = random_prime(lbound=2, ubound=p_1 - 1)
+            #     one_per_k = inverse(k, p_1)
+            #     if one_per_k is not None:
+            #         break
 
-        gamma = modpower(alpha, k, p)
-        delta = (x - a * gamma) % p_1 * one_per_k % p_1
-        return ElGamalSignature(p, gamma, delta)
-    
-    @override
-    def verify(self, verifier_key: tuple[int, int, int], plain_text: ElGamalPlaintext, signature: ElGamalSignature) -> bool:
-        if plain_text.has_second_number():
-            raise ValueError("Cannot verify this type of plaintext.")
+            gamma = modpower(alpha, k, p)
+            delta = (x - a * gamma) % p_1 * one_per_k % p_1
+            return gamma, delta
         
-        p, alpha, beta = verifier_key
-        gamma = signature.get_gamma()
-        delta = signature.get_delta()
-        x = convert_plaintext_to_primitive_root(p, plain_text.plain_numbers[0])
+        signature_numbers: list[int] = []
+        for plain_number in plain_text.plain_numbers:
+            signature_numbers.extend(sign_number(plain_number))
+        signature_numbers.extend(sign_number(len(plain_text.plain_numbers)))
+        return ElGamalSignature(signature_numbers)
+        
+    @override
+    def verify(self, verifier_key: ElGamalSignatureVerifierKey, plain_text: ElGamalPlaintext, signature: ElGamalSignature) -> bool:
+        p, alpha, beta, fact_of_p_minus_1 = verifier_key.p, verifier_key.alpha, verifier_key.beta, verifier_key.fact_of_p_minus_1
 
-        LHS = modpower(beta, gamma, p) * modpower(gamma, delta, p) % p
-        RHS = modpower(alpha, x, p) % p
-        signature_ok = (LHS - RHS) % p == 0
-        if not signature_ok:
-            print(f"Signature verification failed. LHS = {LHS}, RHS = {RHS}")
+        def verify_number(plain_number: int, gamma: int, delta: int) -> bool:
+            x = convert_plain_number_to_primitive_root(p, plain_number, fact_of_p_minus_1)
 
-        return signature_ok
+            LHS = modpower(beta, gamma, p) * modpower(gamma, delta, p) % p
+            RHS = modpower(alpha, x, p) % p
+
+            number_signature_ok = (LHS - RHS) % p == 0
+            if not number_signature_ok:
+                print(f"Signature verification per number failed. LHS = {LHS}, RHS = {RHS}, p = {p}, gamma = {gamma}, delta = {delta}, alpha = {alpha}, x (primitive root) = {x}, plain_number = {plain_number}")
+            return (LHS - RHS) % p == 0
+        
+        try:
+            N = len(plain_text.plain_numbers)
+            for i in range(0, N):
+                plain_number = plain_text.plain_numbers[i]
+                gamma = signature.get_gamma_of_number_by_index(i)
+                delta = signature.get_delta_of_number_by_index(i)
+                number_signature_ok = verify_number(plain_number, gamma, delta)
+                if not number_signature_ok:
+                    return False
+            
+            gamma = signature.get_gamma_of_number_by_index(N)
+            delta = signature.get_delta_of_number_by_index(N)
+            len_signature_ok = verify_number(N, gamma, delta)
+            if not len_signature_ok:
+                print(f"(verify length failed)")
+                return False
+            return True
+        except IndexError as e:
+            print(f"IndexError while verifying signature: {e}")
+            return False
     
     @override
-    def str2plaintext_signer(self, signer_key: tuple[int, int, int], string: str) -> ElGamalPlaintext:
+    def str2plaintext_signer(self, signer_key: ElGamalSignatureSignerKey, string: str) -> ElGamalPlaintext:
         return ElGamalPlaintext.from_string(string)
     
     @override
-    def str2plaintext_verifier(self, verifier_key: tuple[int, int, int], string: str) -> ElGamalPlaintext:
+    def str2plaintext_verifier(self, verifier_key: ElGamalSignatureVerifierKey, string: str) -> ElGamalPlaintext:
         return ElGamalPlaintext.from_string(string)
     
     @override
-    def signature2plaintext(self, signer_key: tuple[int, int, int], signature: ElGamalSignature) -> ElGamalPlaintext:
-        return signature
+    def signature2plaintext(self, signer_key: ElGamalSignatureSignerKey, signature: ElGamalSignature) -> ElGamalPlaintext:
+        return ElGamalPlaintext(signature.plain_numbers)
     
     @override
-    def plaintext2signature(self, verifier_key: tuple[int, int, int], plaintext: ElGamalPlaintext) -> ElGamalSignature:
-        p = verifier_key[0]
-        return ElGamalSignature(p, plaintext.plain_numbers[0], plaintext.plain_numbers[1])
+    def plaintext2signature(self, verifier_key: ElGamalSignatureVerifierKey, plaintext: ElGamalPlaintext) -> ElGamalSignature:
+        return ElGamalSignature(plaintext.plain_numbers)
 
-class ElGamalCryptoSystemTest(CryptoSystemTest[tuple[int, int, int], tuple[int, int], ElGamalCiphertext, ElGamalPlaintext]):
+class ElGamalCryptoSystemTest(CryptoSystemTest[ElGamalCryptoPublicKey, ElGamalCryptoPrivateKey, ElGamalCiphertext, ElGamalPlaintext]):
     @override
     def create_crypto_system(self) -> ElGamalCryptoSystem:
         return ElGamalCryptoSystem()
 
-class ElGamalSignatureSystemTest(SignatureSystemTest[tuple[int, int, int], tuple[int, int, int], ElGamalPlaintext, ElGamalSignature]):
+class ElGamalSignatureSystemTest(SignatureSystemTest[ElGamalSignatureSignerKey, ElGamalSignatureVerifierKey, ElGamalPlaintext, ElGamalSignature]):
     @override
     def create_signature_system(self) -> ElGamalSignatureSystem:
         return ElGamalSignatureSystem()
 
-class ElGamalCryptoSystemAndSignatureSystemTest(CryptoSystemAndSignatureSystemTest[tuple[int, int, int], tuple[int, int], ElGamalCiphertext, ElGamalPlaintext, tuple[int, int, int], tuple[int, int, int], ElGamalSignature]):
+class ElGamalCryptoSystemAndSignatureSystemTest(CryptoSystemAndSignatureSystemTest[ElGamalCryptoPublicKey, ElGamalCryptoPrivateKey, ElGamalCiphertext, ElGamalPlaintext, ElGamalSignatureSignerKey, ElGamalSignatureVerifierKey, ElGamalSignature]):
     @override
     def create_crypto_system(self) -> ElGamalCryptoSystem:
         return ElGamalCryptoSystem()
@@ -330,38 +397,57 @@ def main():
     print(k1)
     print(k2)
 
-    x_text = "H"
+    x_text = "HAHELLOWORLD"
     print(f"Text x: '{x_text}'")
+    print()
     x = crypto_system.str2plaintext(K1, x_text)
     print(f"Plaintext x: {repr(x)}")
+    print()
 
     encrypted_x = crypto_system.encrypt(K1, x)
     print(f"Encrypted x: {encrypted_x}")
+    print()
 
     signature_x = signature_system.sign(k1, signature_system.str2plaintext_signer(k1, x_text))
     print(f"Signature x: {repr(signature_x)}")
+    print()
 
     encrypted_signature_x = crypto_system.encrypt(K1, signature_system.signature2plaintext(k1, signature_x))
     print(f"Encrypted signature x: {encrypted_signature_x}")
+    print()
 
     print()
 
     decrypted_x = crypto_system.decrypt(K2, encrypted_x)
     print(f"Decrypted x: {repr(decrypted_x)}")
+    print()
 
     decrypted_x_text = crypto_system.plaintext2str(K2, decrypted_x)
     print(f"Decrypted x text: '{decrypted_x_text}'")
+    print()
 
     decrypted_signature_x = crypto_system.decrypt(K2, encrypted_signature_x)
     print(f"Decrypted signature x: {repr(decrypted_signature_x)}")
+    print()
 
-    SUCCESS = signature_system.verify(k2, decrypted_x, signature_system.plaintext2signature(k2, decrypted_signature_x))
-    print(f"Verify: {"VALID" if SUCCESS else "NOT AUTHENTIC"}")
+    success = signature_system.verify(k2, decrypted_x, signature_system.plaintext2signature(k2, decrypted_signature_x))
+    print(f"Verify: {"VALID" if success else "NOT AUTHENTIC"}")
+    print()
 
-    SUCCESS2 = signature_system.verify(k2, x, signature_system.plaintext2signature(k2, signature_x))
-    print(f"Verify: {"VALID" if SUCCESS2 else "NOT AUTHENTIC"}")
+    success = signature_system.verify(k2, decrypted_x, signature_system.plaintext2signature(k2, signature_x))
+    print(f"Verify: {"VALID" if success else "NOT AUTHENTIC"}")
+    print()
+
+    success = signature_system.verify(k2, x, signature_system.plaintext2signature(k2, decrypted_signature_x))
+    print(f"Verify: {"VALID" if success else "NOT AUTHENTIC"}")
+    print()
+
+    success = signature_system.verify(k2, x, signature_system.plaintext2signature(k2, signature_x))
+    print(f"Verify: {"VALID" if success else "NOT AUTHENTIC"}")
+    print()
 
     assert x_text == decrypted_x_text
+    assert decrypted_signature_x == signature_x, f"decrypted_signature_x = {decrypted_signature_x}, numbers {decrypted_signature_x.plain_numbers}, signature_x = {signature_x}, numbers {signature_x.plain_numbers}"
 
 if __name__ == "__main__":
     CHECK_TESTING()

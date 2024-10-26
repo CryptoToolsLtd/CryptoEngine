@@ -1,16 +1,19 @@
 from ..modpower import modpower
-from .count_points_on_curve import count_points_on_curve
+from .count_points_on_curve import count_points_on_curve_with_prime_modulo
 from .add import add
 from .double_and_add import double_and_add
 
 class EllipticCurve:
-    def __init__(self, p: int, a: int, b: int, random_point_on_curve: tuple[int, int]):
+    def __init__(self, p: int, p_is_prime: bool, a: int, b: int, random_point_on_curve: tuple[int, int]):
+        if not p_is_prime:
+            # In the future: add algo to count points on curve with non-prime modulo to support this case!
+            raise ValueError("p must be prime")
         self.p = p
         self.a = a
         self.b = b
         self.starting_point = random_point_on_curve
 
-        self.num_points_on_curve = count_points_on_curve(p, a, b)
+        self.num_points_on_curve = count_points_on_curve_with_prime_modulo(p, a, b)
 
         x, y = random_point_on_curve
         assert (4 * modpower(a, 3, p) + 27 * modpower(b, 2, p)) % p != 0

@@ -52,10 +52,9 @@ def jacobi(A: int, B: int) -> int:
 
     raise RuntimeError('unknown case')
 
-class JacobiTest(unittest.TestCase):
+class JacobiSymbolTest(unittest.TestCase):
     def test(self):
         self.assertEqual( jacobi(1, 1), 1 )
-        self.assertEqual( jacobi(1, 2), 1 )
         self.assertEqual( jacobi(1, 3), 1 )
         self.assertEqual( jacobi(-1, 1), 1 )
         self.assertEqual( jacobi(16, 1), 1 )

@@ -27,19 +27,19 @@ def RSA_decrypt(K2: tuple[int, int], c: int) -> int:
 def generate_RSA_keypair(
     pbits: int, qbits: int
 ) -> tuple[tuple[int, int], tuple[int, int]]:
-    p = random_prime(2 ** (pbits + 1), lbound=2**pbits)
+    p = random_prime(lbound=2**pbits, ubound=2 ** (pbits + 1))
     q = p
     while q == p:
-        q = random_prime(2 ** (qbits + 1), lbound=2**qbits)
+        q = random_prime(lbound=2**qbits, ubound=2 ** (qbits + 1))
     n = p * q
     phi_n = (p - 1) * (q - 1)
 
-    e = random_prime(2**11, lbound=2**10)
+    e = random_prime(lbound=2**10, ubound=2**11)
     while True:
         gcd, d = extended_euclidean(e, phi_n)[:2]
         if gcd == 1:
             break
-        e = random_prime(2**11, lbound=2**10)
+        e = random_prime(lbound=2**10, ubound=2**11)
 
     if d is None:
         raise RuntimeError(
@@ -72,7 +72,7 @@ def ver(k2: tuple[int, int], x: int, y: int) -> bool:
 class RSACryptoSystem(CryptoSystem[tuple[int, int], tuple[int, int], int, int]):
     @override
     def generate_keypair(self) -> tuple[tuple[int, int], tuple[int, int]]:
-        return generate_RSA_keypair(512, 512)
+        return generate_RSA_keypair(2048, 2048)
     
     @override
     def ask_public_key_interactively(self, prompt: str|None = None) -> tuple[int, int]:

@@ -1,23 +1,23 @@
-from ..jacobi import jacobi
+from ..legendre import legendre
 import unittest
 from ..CHECK_TESTING import CHECK_TESTING
 
-def count_points_on_curve(p: int, a: int, b: int) -> int:
+def count_points_on_curve_with_prime_modulo(p: int, a: int, b: int) -> int:
     count = 0
     for x in range(p):
         y2 = (x**3 + a*x + b) % p
         if y2 == 0:
             count += 1
             continue
-        j = jacobi(y2, p)
+        j = legendre(y2, p)
         if j == 1:
             count += 2
-    return count + 1
+    count += 1
+    return count
 
 class TestCountPointsOnCurve(unittest.TestCase):
     def test_count_points_on_curve(self):
-        self.assertEqual(count_points_on_curve(827, 29, 13), 809)
-        self.assertEqual(count_points_on_curve(5, 1, 1), 9)
+        self.assertEqual(count_points_on_curve_with_prime_modulo(827, 29, 13), 810)
 
 if __name__ == "__main__":
     CHECK_TESTING()

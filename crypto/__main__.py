@@ -5,6 +5,7 @@ from .extended_euclidean import *
 from .fact import *
 from .int_sqrt import *
 from .jacobi import *
+from .legendre import *
 from .modpower import *
 from .prime import *
 from .primitive_root import *

@@ -10,6 +10,7 @@ def generate_elliptic_curve_with_number_of_points_being_prime(pbits: int) -> Ell
 
     while True:
         p = random_prime(lbound=f"{pbits}b", ubound=f"{pbits+1}b")
+        p_is_prime = True
 
         x = random_prime(lbound=f"{pbits - 1}b", ubound=p)
         y = x
@@ -20,7 +21,7 @@ def generate_elliptic_curve_with_number_of_points_being_prime(pbits: int) -> Ell
         b = (modpower(y, 2, p) - modpower(x, 3, p) - a*x % p) % p
 
         try:
-            ec = EllipticCurve(p, a, b, (x, y))
+            ec = EllipticCurve(p, p_is_prime, a, b, (x, y))
         except AssertionError:
             continue
         if is_prime(ec.num_points_on_curve):
