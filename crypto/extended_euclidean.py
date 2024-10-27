@@ -47,7 +47,11 @@ def extended_euclidean(a: int, b: int) -> tuple[int, int|None, int, int]:
     return (d, inverse, x, y)
 
 def gcd(a: int, b: int) -> int:
-    return extended_euclidean(a, b)[0]
+    while b > 0:
+        r = a % b
+        a = b
+        b = r
+    return a
 
 def inverse(a: int, b: int) -> int|None:
     return extended_euclidean(a, b)[1]

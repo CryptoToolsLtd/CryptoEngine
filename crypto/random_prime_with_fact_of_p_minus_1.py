@@ -3,15 +3,14 @@ sys.set_int_max_str_digits(2147483647) # 2^31 - 1
 
 from .prime.is_prime import is_prime
 from .CHECK_TESTING import CHECK_TESTING
+from .prime.basic_primes import basic_primes
 from .prime.boundaries import compute_lbound_ubound
 from .prime.random_prime import random_prime
 from .fact import fact
 import random
 import unittest
 
-basic_primes = [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]
-
-def random_prime_with_fact_of_p_minus_1(lbound: int|str, ubound: int|str) -> tuple[int, dict[int, int]]:
+def random_prime_with_fact_of_p_minus_1(lbound: int|str, ubound: int|str, max_iters: int|None = None) -> tuple[int, dict[int, int]]:
     lbound, ubound = compute_lbound_ubound(lbound, ubound, lbound_min=3)
 
     if ubound <= 15199:
@@ -22,7 +21,14 @@ def random_prime_with_fact_of_p_minus_1(lbound: int|str, ubound: int|str) -> tup
         return p, fact(p - 1)
     
     threshold = (ubound + lbound) // 2
+
+    iters = max_iters
     while True:
+        if iters is not None:
+            iters -= 1
+            if iters < 0:
+                raise StopIteration
+        
         fact_of_p_minus_1 = { 2: 1 }
         p_minus_1 = 2
 
@@ -92,6 +98,8 @@ if __name__ == "__main__":
     print()
     p, fact_of_p_minus_1 = random_prime_with_fact_of_p_minus_1(lbound=lbound, ubound=ubound)
     print(f"p = {p}")
+    print()
+    print(f"Number of bits: {p.bit_length()}")
     print()
     print(f"Factorization of p - 1:")
     print()

@@ -1,3 +1,6 @@
+CRYPTO_BITS = 18
+SIGNATURE_BITS = 5
+
 import sys
 sys.set_int_max_str_digits(2147483647)
 
@@ -84,7 +87,7 @@ class ECElGamalCryptoSystem(CryptoSystem[
 ]):
     @override
     def generate_keypair(self) -> tuple[ECElGamalPublicKey, ECElGamalPrivateKey]:
-        ec = generate_elliptic_curve_with_number_of_points_being_prime(18)
+        ec = generate_elliptic_curve_with_number_of_points_being_prime(CRYPTO_BITS)
         s = randrange(ec.p // 2, ec.p)
         B = ec.get_point_by_index(s)
         pub = ECElGamalPublicKey(ec, B)
@@ -213,7 +216,7 @@ class ECDSASignatureSystem(SignatureSystem[
 ]):
     @override
     def generate_keypair(self) -> tuple[ECDSASignatureSignerKey, ECDSASignatureVerifierKey]:
-        ec = generate_elliptic_curve_with_number_of_points_being_prime(pbits=5)
+        ec = generate_elliptic_curve_with_number_of_points_being_prime(pbits=SIGNATURE_BITS)
         n = ec.num_points_on_curve
         G = ec.starting_point
 

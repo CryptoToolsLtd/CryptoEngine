@@ -1,6 +1,6 @@
 from .CHECK_TESTING import *
-from .ElGamal import *
 from .ECElGamal import *
+from .ElGamal import *
 from .extended_euclidean import *
 from .fact import *
 from .int_sqrt import *
@@ -9,6 +9,9 @@ from .legendre import *
 from .modpower import *
 from .prime import *
 from .primitive_root import *
+from .random_prime_fast import *
+from .random_prime_maurer import *
+from .random_prime_with_fact_of_p_minus_1 import *
 from .pubkeyops import *
 from .RSA import *
 from .strint import *
