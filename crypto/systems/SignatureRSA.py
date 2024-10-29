@@ -16,11 +16,17 @@ class RSASignatureSignerKey:
     def __init__(self, n: int, a: int) -> None:
         self.n = n
         self.a = a
+    
+    def __repr__(self) -> str:
+        return f"RSASignatureSignerKey(n = {self.n} , a = {self.a})"
 
 class RSASignatureVerifierKey:
     def __init__(self, n: int, b: int) -> None:
         self.n = n
         self.b = b
+
+    def __repr__(self) -> str:
+        return f"RSASignatureVerifierKey(n = {self.n} , b = {self.b})"
 
 class RSASignatureSystem(SignatureSystem[RSASignatureSignerKey, RSASignatureVerifierKey]):
     @override

@@ -70,3 +70,8 @@ class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, S
         print(f"{myName}'s Private Key for Signing (pKS):")
         print(f"      k1 = {k1}")
         print()
+        print("=" * 79)
+        print()
+        print("REVEAL SIGNATURE(S):")
+        print(f"{signature_x}")
+        print()

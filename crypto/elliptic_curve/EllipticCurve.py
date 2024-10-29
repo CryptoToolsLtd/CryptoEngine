@@ -20,7 +20,7 @@ class EllipticCurve:
         assert self.is_point_on_curve((x, y))
     
     def __repr__(self) -> str:
-        return f"EllipticCurve(p = {self.p}, a = {self.a}, b = {self.b}, starting point P = {self.starting_point})"
+        return f"EllipticCurve(p = {self.p} , a = {self.a} , b = {self.b} , starting point P = {self.starting_point})"
     
     def get_point_by_index(self, s: int) -> tuple[int, int]:
         return self.scale_point(s, self.starting_point)

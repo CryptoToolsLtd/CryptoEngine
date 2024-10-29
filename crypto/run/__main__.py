@@ -5,13 +5,14 @@ import sys
 from typing import Callable
 
 CHOICES: dict[str, Callable[[], None]] = {
-    "CryptoECElGamal_SignatureECDSA": run_CryptoECElGamal_SignatureECDSA,
-    "CryptoElGamal_SignatureElGamal": run_CryptoElGamal_SignatureElGamal,
-    "CryptoRSA_SignatureRSA": run_CryptoRSA_SignatureRSA,
-
     "CryptoRSA": run_CryptoRSA,
-    "CryptoECElGamal": run_CryptoECElGamal,
     "CryptoElGamal": run_CryptoElGamal,
+    "CryptoECElGamal": run_CryptoECElGamal,
+    "CryptoMasseyOmura": run_CryptoMasseyOmura,
+
+    "CryptoRSA_SignatureRSA": run_CryptoRSA_SignatureRSA,
+    "CryptoElGamal_SignatureElGamal": run_CryptoElGamal_SignatureElGamal,
+    "CryptoECElGamal_SignatureECDSA": run_CryptoECElGamal_SignatureECDSA,
 }
 
 if __name__ == "__main__":

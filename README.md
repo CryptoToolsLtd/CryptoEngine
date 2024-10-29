@@ -1,63 +1,107 @@
-# Crypto Scripts
+# CryptoEngine
 
-No SageMath !
+A bunch of scripts implementing popular ciphers and signature
+systems, as well as useful mathematical tools in cryptography and
+information security.
 
-- [Crypto Scripts](#crypto-scripts)
+- [CryptoEngine](#cryptoengine)
   - [Prerequisites](#prerequisites)
   - [How to run](#how-to-run)
   - [Gallery](#gallery)
-    - [RSA](#rsa)
-    - [ElGamal](#elgamal)
-    - [EC-ElGamal + ECDSA](#ec-elgamal--ecdsa)
+    - [CryptoRSA](#cryptorsa)
+    - [CryptoElGamal](#cryptoelgamal)
+    - [CryptoECElGamal](#cryptoecelgamal)
+    - [CryptoMasseyOmura](#cryptomasseyomura)
+    - [CryptoRSA\_SignatureRSA](#cryptorsa_signaturersa)
+    - [CryptoElGamal\_SignatureElGamal](#cryptoelgamal_signatureelgamal)
+    - [CryptoECElGamal\_SignatureECDSA](#cryptoecelgamal_signatureecdsa)
   - [Testing](#testing)
-  - [Authors](#authors)
+  - [Author](#author)
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.12+ (no external libraries/packages are required)
 
 ## How to run
 
 First, `cd` to the project's root.
 
-For each of the following command: run the
-same command in two separate console windows
-to simulate communication.
+Run the same command side-by-side (e.g. in two separate
+console windows) to simulate communication between two
+parties over the network.
 
-1. RSA (Cipher and Signature System combined):
+```sh
+python3.12 -m crypto.run XXX
+```
 
-    ```sh
-    python3.12 -m crypto.RSA
-    ```
+where `XXX` is the runner name, given in the following
+table. (EC means Elliptic Curve-based)
 
-2. ElGamal (Cipher and Signature System combined):
+|    # | Runner name (`XXX`)            | Description                                           | Key length (bits) (\*) | Approximate Time For Generating Key Pairs (seconds) |
+| ---: | ------------------------------ | ----------------------------------------------------- | :--------------------: | :-------------------------------------------------: |
+|    1 | CryptoRSA                      | RSA Cipher alone                                      |          4096          |                        5 - 6                        |
+|    2 | CryptoElGamal                  | ElGamal Cipher alone                                  |          1024          |                        2 - 3                        |
+|    3 | CryptoECElGamal                | EC-ElGamal Cipher alone                               |          256           |                  Instantly (\*\*)                   |
+|    4 | CryptoMasseyOmura              | EC-Massey-Omura Cipher alone                          |          256           |                  Instantly (\*\*)                   |
+|    5 | CryptoRSA_SignatureRSA         | RSA Cipher and Signature System combined              |       4096 & 512       |                (5 - 6) & (Instantly)                |
+|    6 | CryptoElGamal_SignatureElGamal | ElGamal Cipher and ElGamal Signature System combined  |       1024 & 128       |                 (2 - 3) & (0.2 - 1)                 |
+|    7 | CryptoECElGamal_SignatureECDSA | EC-ElGamal Cipher and ECDSA Signature System combined |        256 & 10        |          (Instantly (\*\*)) & (Instantly)           |
 
-    ```sh
-    python3.12 -m crypto.ElGamal
-    ```
+(\*) Key Length Interpretation:
 
-3. EC-ElGamal Cipher combined with ECDSA Signature System:
+- For RSA, it's the bit length of `n = pq`.
+- For ElGamal, it's the bit length of `p` the modulus.
+- For EC-ElGamal and EC-Massey-Omura, it's the bit length
+    of `p` as in field F_p over which the elliptic curve is formed.
+- For runners with combined crypto and signature systems, there are
+    two numbers of key length - one for the cipher, the other for
+    the signature system.
 
-    ```sh
-    python3.12 -m crypto.ECElGamal
-    ```
+(\*\*) *Instant* time in those cases are due to a pre-selected
+elliptic curve with known properties and is considered safe for
+cryptographic uses. That is how the real-world industry is doing
+elliptic curve cryptography anyway. In all the other cases,
+*Instantly* means the program generates the curves (or whatever
+relevant parameters, keys etc.) from scratch.
 
 ## Gallery
 
-### RSA
+More images and text reports can be found in the directory `<project_root>/docs/results`.
 
-![RSA](./docs/results/RSA.png)
+### CryptoRSA
 
-### ElGamal
+[View text](./docs/results/CryptoRSA.txt)
+![CryptoRSA](./docs/results/CryptoRSA.png)
 
-![ElGamal](./docs/results/ElGamal.png)
+### CryptoElGamal
 
-### EC-ElGamal + ECDSA
+[View text](./docs/results/CryptoElGamal.txt)
+![CryptoElGamal](./docs/results/CryptoElGamal.png)
 
-![EC-ElGamal + ECDSA](./docs/results/ECElGamal+ECDSA.png)
+### CryptoECElGamal
 
-You can view the results in the text files
-under the `/docs/results` directory.
+[View text](./docs/results/CryptoECElGamal.txt)
+![CryptoECElGamal](./docs/results/CryptoECElGamal.png)
+
+### CryptoMasseyOmura
+
+[View text](./docs/results/CryptoMasseyOmura.txt)
+![CryptoMasseyOmura](./docs/results/CryptoMasseyOmura.png)
+
+### CryptoRSA_SignatureRSA
+
+[View text](./docs/results/CryptoRSA_SignatureRSA.txt)
+![CryptoRSA_SignatureRSA](./docs/results/CryptoRSA_SignatureRSA.png)
+
+### CryptoElGamal_SignatureElGamal
+
+[View text](./docs/results/CryptoElGamal_SignatureElGamal.txt)
+![CryptoElGamal_SignatureElGamal](./docs/results/CryptoElGamal_SignatureElGamal.png)
+
+### CryptoECElGamal_SignatureECDSA
+
+[View text](./docs/results/CryptoECElGamal_SignatureECDSA.txt)
+![CryptoECElGamal_SignatureECDSA](./docs/results/CryptoECElGamal_SignatureECDSA.png)
 
 ## Testing
 
@@ -66,15 +110,23 @@ for a particular module, run it with `test` command-line
 argument. For example:
 
 ```sh
-python3.12 -m crypto.RSA test
-python3.12 -m crypto.ElGamal test
-python3.12 -m crypto.ECElGamal test
-python3.12 -m crypto.prime.is_prime test
+python3.12 -m crypto.systems test
+python3.12 -m crypto.elliptic_curve test
+python3.12 -m crypto.prime test
 ```
 
 etc.
 
-## Authors
+To run all tests, execute the following command:
 
-- Vũ Tùng Lâm 22028235 UET
-- Lê Thành Đạt 22028189 UET
+```sh
+python3.12 -m crypto test
+```
+
+There are 59 tests, which take 30 - 35 seconds
+in total to complete on Intel i7-1165G7
+@ 2.80GHz × 4.
+
+## Author
+
+Vũ Tùng Lâm 22028235 UET
