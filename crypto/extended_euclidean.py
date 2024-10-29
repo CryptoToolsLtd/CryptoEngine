@@ -58,7 +58,7 @@ def inverse(a: int, b: int) -> int|None:
 
 import unittest
 
-class TestSolve(unittest.TestCase):
+class TestExtendedEuclidean(unittest.TestCase):
     def test_invertible(self):
         self.assertEqual( extended_euclidean(13, 16)[:2], (1, 5) )
         self.assertEqual( extended_euclidean(101, 16), (1, 13, -3, 19) )

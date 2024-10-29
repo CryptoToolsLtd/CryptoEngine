@@ -1,7 +1,8 @@
+from .Plaintext import Plaintext
 import unittest
 from typing import override
 
-class CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext]:
+class CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext]:
     def generate_keypair(self) -> tuple[CryptoPublicKey, CryptoPrivateKey]:
         raise NotImplementedError
 
@@ -26,8 +27,8 @@ class CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext]:
     def plaintext2str(self, private_key: CryptoPrivateKey, plain_text: Plaintext) -> str:
         raise NotImplementedError
 
-class CryptoSystemTest[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext](unittest.TestCase):
-    def create_crypto_system(self) -> CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext]:
+class CryptoSystemTest[CryptoPublicKey, CryptoPrivateKey, Ciphertext](unittest.TestCase):
+    def create_crypto_system(self) -> CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext]:
         raise NotImplementedError
 
     @override

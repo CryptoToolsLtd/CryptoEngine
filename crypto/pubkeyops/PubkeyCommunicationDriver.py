@@ -1,11 +1,11 @@
 from .CryptoSystem import CryptoSystem
 from .SignatureSystem import SignatureSystem
 
-class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext, SignatureSignerKey, SignatureVerifierKey, Signature]:
+class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, SignatureSignerKey, SignatureVerifierKey]:
     def __init__(
         self,
-        crypto_system: CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext],
-        signature_system: SignatureSystem[SignatureSignerKey, SignatureVerifierKey, Plaintext, Signature],
+        crypto_system: CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext],
+        signature_system: SignatureSystem[SignatureSignerKey, SignatureVerifierKey],
     ):
         self.crypto_system = crypto_system
         self.signature_system = signature_system
@@ -38,7 +38,7 @@ class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, P
 
         # print("Encrypting")
         encrypted_x = self.crypto_system.encrypt(F1, cx)
-        encrypted_signature_x = self.crypto_system.encrypt(F1, self.signature_system.signature2plaintext(k1, signature_x))
+        encrypted_signature_x = self.crypto_system.encrypt(F1, signature_x)
 
         print("SEND:")
         print(f"Send encrypted message: {encrypted_x}")
@@ -50,7 +50,7 @@ class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, P
         encrypted_signature_x = self.crypto_system.ask_cipher_text_interactively(K2, "Enter received encrypted signature") # int(input("encrypted signature x = "))
         decrypted_x = self.crypto_system.decrypt(K2, encrypted_x)
         decrypted_signature_x = self.crypto_system.decrypt(K2, encrypted_signature_x)
-        SUCCESS = self.signature_system.verify(f2, decrypted_x, self.signature_system.plaintext2signature(f2, decrypted_signature_x))
+        SUCCESS = self.signature_system.verify(f2, decrypted_x, decrypted_signature_x)
         if not SUCCESS:
             print(f"WRONG, message not authentic.")
             print(f"Message is: {self.crypto_system.plaintext2str(K2, decrypted_x)} ; plaintext number is {decrypted_x}")

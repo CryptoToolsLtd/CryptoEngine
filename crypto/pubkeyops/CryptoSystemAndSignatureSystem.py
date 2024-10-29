@@ -2,11 +2,11 @@ import unittest
 from .CryptoSystem import CryptoSystem
 from .SignatureSystem import SignatureSystem
 
-class CryptoSystemAndSignatureSystemTest[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext, SignatureSignerKey, SignatureVerifierKey, Signature](unittest.TestCase):
-    def create_crypto_system(self) -> CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext, Plaintext]:
+class CryptoSystemAndSignatureSystemTest[CryptoPublicKey, CryptoPrivateKey, Ciphertext, SignatureSignerKey, SignatureVerifierKey](unittest.TestCase):
+    def create_crypto_system(self) -> CryptoSystem[CryptoPublicKey, CryptoPrivateKey, Ciphertext]:
         raise NotImplementedError
     
-    def create_signature_system(self) -> SignatureSystem[SignatureSignerKey, SignatureVerifierKey, Plaintext, Signature]:
+    def create_signature_system(self) -> SignatureSystem[SignatureSignerKey, SignatureVerifierKey]:
         raise NotImplementedError
     
     def setUp(self):
@@ -25,12 +25,12 @@ class CryptoSystemAndSignatureSystemTest[CryptoPublicKey, CryptoPrivateKey, Ciph
         signature_x = self.signature_system.sign(k1, self.signature_system.str2plaintext_signer(k1, x))
 
         encrypted_x = self.crypto_system.encrypt(K1, self.crypto_system.str2plaintext(K1, x))
-        encrypted_signature_x = self.crypto_system.encrypt(K1, self.signature_system.signature2plaintext(k1, signature_x))
+        encrypted_signature_x = self.crypto_system.encrypt(K1, signature_x)
 
         decrypted_x = self.crypto_system.decrypt(K2, encrypted_x)
         decrypted_signature_x = self.crypto_system.decrypt(K2, encrypted_signature_x)
 
-        self.assertTrue(self.signature_system.verify(k2, decrypted_x, self.signature_system.plaintext2signature(k2, decrypted_signature_x)))
+        self.assertTrue(self.signature_system.verify(k2, decrypted_x, decrypted_signature_x))
         self.assertEqual(self.crypto_system.str2plaintext(K1, x), decrypted_x)
         self.assertEqual(x.upper(), self.crypto_system.plaintext2str(K2, decrypted_x))
 
@@ -48,13 +48,13 @@ class CryptoSystemAndSignatureSystemTest[CryptoPublicKey, CryptoPrivateKey, Ciph
 
         # print("Encrypting")
         encrypted_x = self.crypto_system.encrypt(K1, self.crypto_system.str2plaintext(K1, x))
-        encrypted_signature_x = self.crypto_system.encrypt(K1, self.signature_system.signature2plaintext(k1, signature_x))
+        encrypted_signature_x = self.crypto_system.encrypt(K1, signature_x)
 
         # print("Decrypting")
         decrypted_x = self.crypto_system.decrypt(K2, encrypted_x)
         decrypted_signature_x = self.crypto_system.decrypt(K2, encrypted_signature_x)
 
         # print("Verifying")
-        self.assertTrue(self.signature_system.verify(k2, decrypted_x, self.signature_system.plaintext2signature(k2, decrypted_signature_x)))
+        self.assertTrue(self.signature_system.verify(k2, decrypted_x, decrypted_signature_x))
         self.assertEqual(self.crypto_system.str2plaintext(K1, x), decrypted_x)
         self.assertEqual(x.upper(), self.crypto_system.plaintext2str(K2, decrypted_x))
