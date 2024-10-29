@@ -10,7 +10,7 @@ from .extended_euclidean import extended_euclidean
 from .modpower import modpower
 from .strint import str2int, int2str
 from .prime import random_prime
-from .random_prime_fast import random_prime_fast_with_fact_of_p_minus_1
+from .random_prime_fast import random_prime_fast
 from .pubkeyops import CryptoSystem, CryptoSystemTest, SignatureSystem, SignatureSystemTest, CryptoSystemAndSignatureSystemTest, PubkeyCommunicationDriver
 from .CHECK_TESTING import CHECK_TESTING
 
@@ -30,7 +30,7 @@ def RSA_decrypt(K2: tuple[int, int], c: int) -> int:
 def generate_RSA_keypair(
     pbits: int, qbits: int
 ) -> tuple[tuple[int, int], tuple[int, int]]:
-    (p,_), (q,_) = random_prime_fast_with_fact_of_p_minus_1(lbound=2**pbits, ubound=2 ** (pbits + 1), takes=2)
+    p, q = random_prime_fast(lbound=2**pbits, ubound=2 ** (pbits + 1), takes=2)
     while q == p:
         q = random_prime(lbound=2**qbits, ubound=2 ** (qbits + 1))
     n = p * q

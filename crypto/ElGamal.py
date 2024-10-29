@@ -19,24 +19,21 @@ from .strint import str2int, int2str
 from .primitive_root import is_primitive_root_fast
 from .random_prime_with_fact_of_p_minus_1 import random_prime_with_fact_of_p_minus_1
 from .pubkeyops import CryptoSystem, CryptoSystemTest, SignatureSystem, SignatureSystemTest, CryptoSystemAndSignatureSystemTest, PubkeyCommunicationDriver
-
+from .bit_padding import pad, unpad, BitPaddingConfig
 from .CHECK_TESTING import CHECK_TESTING
 
+BIT_PADDING_CONFIG = BitPaddingConfig(LEFT_PADDING_SIZE, RIGHT_PADDING_SIZE)
+
 def convert_plain_number_to_primitive_root(p: int, original_number: int, fact_of_p_minus_1: dict[int, int]) -> int:
-    K = original_number.bit_length() + (LEFT_PADDING_SIZE - 1) + RIGHT_PADDING_SIZE
-    left_pad_base = (1 << (K + 1))
-    x = left_pad_base + original_number << RIGHT_PADDING_SIZE
-    for left_pad_additional in range(0, 2 ** (LEFT_PADDING_SIZE - 1)):
-        for right_pad in range(0, 2 ** RIGHT_PADDING_SIZE):
-                candidate = (left_pad_additional << K) + x + right_pad
-                if is_primitive_root_fast(p, candidate, fact_of_p_minus_1):
-                    return candidate
-    raise RuntimeError(f"Could not find a valid primitive root modulo p = {p} substituting original_number = {original_number}")
+    def check_func(candidate: int) -> bool:
+        return is_primitive_root_fast(p, candidate, fact_of_p_minus_1)
+    padded_number = pad(BIT_PADDING_CONFIG, original_number, check_func)
+    if padded_number is None:
+        raise RuntimeError(f"Could not find a valid primitive root modulo p = {p} substituting original_number = {original_number}")
+    return padded_number
 
 def convert_primitive_root_to_plain_number(primitive_root: int) -> int:
-    x = primitive_root >> RIGHT_PADDING_SIZE
-    x = x & ((1 << (x.bit_length() - LEFT_PADDING_SIZE - 1)) - 1)
-    return x
+    return unpad(BIT_PADDING_CONFIG, primitive_root)
 
 from .fact import fact
 class TestPrimitiveRootAndPlainNumberConversions(unittest.TestCase):

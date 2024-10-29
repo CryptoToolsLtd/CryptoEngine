@@ -16,7 +16,7 @@ class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, P
         print("Generating signature keypair...")
         k1, k2 = self.signature_system.generate_keypair()
 
-        myName = input("My Name: ")
+        myName = input("Your Name: ")
         friendName = input("Your Friend's Name: ")
 
         print(f"{myName}'s Public Key for Encryption (PKE):")
@@ -56,3 +56,13 @@ class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, P
             print(f"Message is: {self.crypto_system.plaintext2str(K2, decrypted_x)} ; plaintext number is {decrypted_x}")
         else:
             print(f"OK, message is: {self.crypto_system.plaintext2str(K2, decrypted_x)} ; plaintext number is {decrypted_x}")
+        
+        print()
+        print("=" * 79)
+        print()
+        print("REVEAL PRIVATE/SIGNER KEYS:")
+        print(f"{myName}'s Private Key for Decryption (pKD):")
+        print(f"      K2 = {K2}")
+        print(f"{myName}'s Private Key for Signing (pKS):")
+        print(f"      k1 = {k1}")
+        print()

@@ -1,20 +1,28 @@
-CRYPTO_BITS = 18
-SIGNATURE_BITS = 5
+CRYPTO_BITS = 256
+SIGNATURE_BITS = 10
+
+GRANULARITY = 10
+
+RIGHT_PADDING_SIZE = 2
+LEFT_PADDING_SIZE = 5
 
 import sys
 sys.set_int_max_str_digits(2147483647)
 
 from typing import override
-from random import randrange
+from random import randrange, random
 from copy import deepcopy
-
 from .pubkeyops import CryptoSystem, CryptoSystemTest, SignatureSystem, SignatureSystemTest, CryptoSystemAndSignatureSystemTest, PubkeyCommunicationDriver
-
 from .elliptic_curve import EllipticCurve, generate_elliptic_curve_with_number_of_points_being_prime
 from .prime import is_prime
+from .legendre import legendre
+from .modpower import modpower
 from .extended_euclidean import inverse
-
+from .strint import str2int, int2str
+from .bit_padding import pad, unpad, BitPaddingConfig
 from .CHECK_TESTING import CHECK_TESTING
+
+BIT_PADDING_CONFIG = BitPaddingConfig(LEFT_PADDING_SIZE, RIGHT_PADDING_SIZE)
 
 class ECElGamalPlaintext:
     def __init__(self, numbers: list[int]):
@@ -27,6 +35,79 @@ class ECElGamalPlaintext:
         if not isinstance(other, ECElGamalPlaintext):
             return False
         return self.numbers == other.numbers
+    
+    @staticmethod
+    def from_string(string: str) -> "ECElGamalPlaintext":
+        plain_numbers: list[int] = []
+
+        accumulation = ""
+        for char in string:
+            if not char.isalpha():
+                raise ValueError("ECElGamalPlaintext can only contain alphabetic characters")
+            char = char.upper()
+            accumulation += char
+            if len(accumulation) == GRANULARITY:
+                plain_numbers.append(str2int(accumulation))
+                accumulation = ""
+
+        if len(accumulation) > 0:
+            plain_numbers.append(str2int(accumulation))
+
+        return ECElGamalPlaintext(plain_numbers)
+
+    def __str__(self):
+        result = ""
+        for number in self.numbers:
+            result += int2str(number)
+        return result
+
+def convert_plain_number_to_pair_of_points_on_curve(ec: EllipticCurve, B: tuple[int, int], number: int) -> tuple[tuple[int, int], tuple[int, int]]:
+    p, a, b = ec.p, ec.a, ec.b
+    P = ec.starting_point
+    # Because we always choose curves over F_p with p ≡ 3 mod 4,
+    # the encoding scheme is simple. Suppose the plaintext number is m:
+    # 1. Pad bits to m to get x till we have f(x) being a quadratic residue mod p,
+    #       where f(x) = x^3 + ax + b.
+    # 2. Then, we have to find a number y such that y^2 = f(x) mod p.
+    #       This equation falls into a special case where p ≡ 3 mod 4 as we
+    #       noted earlier, in which it could be easily solved:
+    #                   y = ± [f(x)]^(k+1) mod p.
+    #       where
+    #                   p = 4k + 3 or k = (p - 3) // 4.
+    # THIS IS ESSENTIALLY THE SECOND METHOD MENTIONED IN SECTION 3. Imbedding plaintext
+    # IN THIS PAPER:
+    # https://www.ams.org/journals/mcom/1987-48-177/S0025-5718-1987-0866109-5/S0025-5718-1987-0866109-5.pdf
+
+    f_x = 0
+    def check_f_x_being_quadratic_residue_mod_p(x: int) -> bool:
+        nonlocal f_x
+        f_x = ( modpower(x, 3, p) + a * x + b ) % p
+        return legendre(f_x, p) == 1
+    
+    x = pad(BIT_PADDING_CONFIG, number, check_f_x_being_quadratic_residue_mod_p)
+    if x is None:
+        raise RuntimeError(f"Could not find a suitable x for the number {number}")
+    # We have calculated this earlier
+    # f_x = ( modpower(x, 3, p) + a * x + b ) % p
+    k = (p - 3) // 4
+    y = modpower(f_x, k + 1, p)
+    if random() < 0.5:
+        y = (p - y) % p
+
+    M = (x, y)
+    assert ec.is_point_on_curve(M)
+
+    k = randrange(ec.p // 2, ec.p)
+    M1 = ec.scale_point(k, P)
+    M2 = ec.add_points(M, ec.scale_point(k, B))
+    return M1, M2
+
+def convert_pair_of_points_on_curve_to_plain_number(ec: EllipticCurve, s: int, pair: tuple[tuple[int, int], tuple[int, int]]) -> int:
+    M1, M2 = pair
+    M = ec.add_points(M2, ec.scale_point(-s, M1))
+    x = M[0]
+    return unpad(BIT_PADDING_CONFIG, x)
+
 
 class ECElGamalPublicKey:
     def __init__(self, ec: EllipticCurve, B: tuple[int, int]):
@@ -64,20 +145,6 @@ def ask_elliptic_curve_interactively() -> EllipticCurve:
     )
     ec = EllipticCurve(p, p_is_prime, a, b, P)
     return ec
-
-def str_to_ECElGamalPlaintext(ec: EllipticCurve, string: str) -> ECElGamalPlaintext:
-    string = string.upper()
-    numbers: list[int] = []
-    for c in string:
-        if not c.isalpha():
-            raise ValueError(f"Only alphabetic characters are allowed. Found character {c} in string '{string}'.")
-        c = ord(c) - ord('A')
-        assert c < ec.p
-        numbers.append(c)
-    return ECElGamalPlaintext(numbers)
-
-def ECElGamalPlaintext_to_str(plain_text: ECElGamalPlaintext) -> str:
-    return "".join([chr(c + ord('A')) for c in plain_text.numbers])
 
 class ECElGamalCryptoSystem(CryptoSystem[
     ECElGamalPublicKey,
@@ -132,22 +199,12 @@ class ECElGamalCryptoSystem(CryptoSystem[
     
     @override
     def encrypt(self, public_key: ECElGamalPublicKey, plain_text: ECElGamalPlaintext) -> ECElGamalCiphertext:
-        ec = public_key.ec
-        P = ec.starting_point
-        B = public_key.B
+        ec, B = public_key.ec, public_key.B
         numbers = plain_text.numbers
         pairs: list[tuple[tuple[int, int], tuple[int, int]]] = []
 
-        def encrypt_single(number: int) -> tuple[tuple[int, int], tuple[int, int]]:
-            M = ec.get_point_by_index(number)
-
-            k = randrange(ec.p // 2, ec.p)
-            M1 = ec.scale_point(k, P)
-            M2 = ec.add_points(M, ec.scale_point(k, B))
-            return M1, M2
-
         for number in numbers:
-            pairs.append(encrypt_single(number))
+            pairs.append(convert_plain_number_to_pair_of_points_on_curve(ec, B, number))
         return ECElGamalCiphertext(pairs)
     
     @override
@@ -155,27 +212,18 @@ class ECElGamalCryptoSystem(CryptoSystem[
         ec = private_key.ec
         s = private_key.s
 
-        def decrypt_single(pair: tuple[tuple[int, int], tuple[int, int]]) -> int:
-            M1, M2 = pair
-            M = ec.add_points(M2, ec.scale_point(-s, M1))
-            P = ec.starting_point
-            c = ec.search_point(M, P, 128, 0) # because 128 = 2^7 ; ECDSA below uses 5-bit p elliptic curve.
-            if c is None:
-                raise RuntimeError(f"Decryption failed. Could not find the point {M} on the curve {ec}.")
-            return c
-        
         numbers: list[int] = []
         for pair in cipher_text.pairs:
-            numbers.append(decrypt_single(pair))
+            numbers.append(convert_pair_of_points_on_curve_to_plain_number(ec, s, pair))
         return ECElGamalPlaintext(numbers)
     
     @override
     def str2plaintext(self, public_key: ECElGamalPublicKey, string: str) -> ECElGamalPlaintext:
-        return str_to_ECElGamalPlaintext(public_key.ec, string)
+        return ECElGamalPlaintext.from_string(string)
     
     @override
     def plaintext2str(self, private_key: ECElGamalPrivateKey, plain_text: ECElGamalPlaintext) -> str:
-        return ECElGamalPlaintext_to_str(plain_text)
+        return str(plain_text)
 
 class ECElGamalCryptoSystemTest(CryptoSystemTest[
     ECElGamalPublicKey,
@@ -317,11 +365,11 @@ class ECDSASignatureSystem(SignatureSystem[
     
     @override
     def str2plaintext_signer(self, signer_key: ECDSASignatureSignerKey, string: str) -> ECElGamalPlaintext:
-        return str_to_ECElGamalPlaintext(signer_key.ec, string)
+        return ECElGamalPlaintext.from_string(string)
     
     @override
     def str2plaintext_verifier(self, verifier_key: ECDSASignatureVerifierKey, string: str) -> ECElGamalPlaintext:
-        return str_to_ECElGamalPlaintext(verifier_key.ec, string)
+        return ECElGamalPlaintext.from_string(string)
     
     @override
     def signature2plaintext(self, signer_key: ECDSASignatureSignerKey, signature: ECDSASignature) -> ECElGamalPlaintext:
