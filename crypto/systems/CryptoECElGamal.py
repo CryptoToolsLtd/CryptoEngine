@@ -81,8 +81,16 @@ class ECElGamalPrivateKey:
     def __repr__(self) -> str:
         return f"ECElGamalPrivateKey(ec = {self.ec}, s = {self.s})"
 
+class ECElGamalCiphertextPair:
+    def __init__(self, M1: tuple[int, int], M2: tuple[int, int]):
+        self.M1 = M1
+        self.M2 = M2
+    
+    def __repr__(self) -> str:
+        return f"ECElGamalCiphertextPair( M1 = {self.M1} , M2 = {self.M2} )"
+
 class ECElGamalCiphertext:
-    def __init__(self, pairs: list[tuple[tuple[int, int], tuple[int, int]]]):
+    def __init__(self, pairs: list[ECElGamalCiphertextPair]):
         self.pairs = deepcopy(pairs)
     
     def __repr__(self) -> str:
@@ -137,7 +145,7 @@ class ECElGamalCryptoSystem(CryptoSystem[
     def ask_cipher_text_interactively(self, private_key: ECElGamalPrivateKey, prompt: str|None = None) -> ECElGamalCiphertext:
         print(prompt or "Enter the ciphertext:")
         N = int(input("    Enter the number of pairs: "))
-        pairs: list[tuple[tuple[int, int], tuple[int, int]]] = []
+        pairs: list[ECElGamalCiphertextPair] = []
         for i in range(N):
             print(f"Pair {i + 1}:")
             x1 = int(input("    x_M1: "))
@@ -145,7 +153,7 @@ class ECElGamalCryptoSystem(CryptoSystem[
             x2 = int(input("    x_M2: "))
             y2 = int(input("    y_M2: "))
 
-            pairs.append(((x1, y1), (x2, y2)))
+            pairs.append(ECElGamalCiphertextPair((x1, y1), (x2, y2)))
         
         return ECElGamalCiphertext(pairs)
     
@@ -153,10 +161,11 @@ class ECElGamalCryptoSystem(CryptoSystem[
     def encrypt(self, public_key: ECElGamalPublicKey, plain_text: Plaintext) -> ECElGamalCiphertext:
         ec, B = public_key.ec, public_key.B
         numbers = plain_text.numbers
-        pairs: list[tuple[tuple[int, int], tuple[int, int]]] = []
+        pairs: list[ECElGamalCiphertextPair] = []
 
         for number in numbers:
-            pairs.append(convert_plain_number_to_pair_of_points_on_curve(ec, B, number))
+            M1, M2 = convert_plain_number_to_pair_of_points_on_curve(ec, B, number)
+            pairs.append(ECElGamalCiphertextPair(M1, M2))
         return ECElGamalCiphertext(pairs)
     
     @override
@@ -166,7 +175,8 @@ class ECElGamalCryptoSystem(CryptoSystem[
 
         plain_numbers: list[int] = []
         for pair in cipher_text.pairs:
-            plain_numbers.append(convert_pair_of_points_on_curve_to_plain_number(ec, s, pair))
+            M1, M2 = pair.M1, pair.M2
+            plain_numbers.append(convert_pair_of_points_on_curve_to_plain_number(ec, s, (M1, M2)))
         return Plaintext(plain_numbers)
     
     @override

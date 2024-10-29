@@ -4,23 +4,23 @@ from .add import add
 from .double_and_add import double_and_add
 
 class EllipticCurve:
-    def __init__(self, p: int, p_is_prime: bool, a: int, b: int, random_point_on_curve: tuple[int, int]):
+    def __init__(self, p: int, p_is_prime: bool, a: int, b: int, starting_point: tuple[int, int]):
         if not p_is_prime:
             # In the future: add algo to count points on curve with non-prime modulo to support this case!
             raise ValueError("p must be prime")
         self.p = p
         self.a = a
         self.b = b
-        self.starting_point = random_point_on_curve
+        self.starting_point = starting_point
 
         self.num_points_on_curve = count_points_on_curve_with_prime_modulo(p, a, b)
 
-        x, y = random_point_on_curve
+        x, y = starting_point
         assert (4 * modpower(a, 3, p) + 27 * modpower(b, 2, p)) % p != 0
         assert self.is_point_on_curve((x, y))
     
     def __repr__(self) -> str:
-        return f"EllipticCurve(p = {self.p}, a = {self.a}, b = {self.b}, random_point_on_curve = {self.starting_point})"
+        return f"EllipticCurve(p = {self.p}, a = {self.a}, b = {self.b}, starting point P = {self.starting_point})"
     
     def get_point_by_index(self, s: int) -> tuple[int, int]:
         return self.scale_point(s, self.starting_point)

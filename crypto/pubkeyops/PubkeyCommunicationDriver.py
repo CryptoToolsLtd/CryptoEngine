@@ -46,16 +46,20 @@ class PubkeyCommunicationDriver[CryptoPublicKey, CryptoPrivateKey, Ciphertext, S
 
         print("RECEIVE:")
 
-        encrypted_x = self.crypto_system.ask_cipher_text_interactively(K2, "Enter received encrypted message") # int(input("encrypted x = "))
-        encrypted_signature_x = self.crypto_system.ask_cipher_text_interactively(K2, "Enter received encrypted signature") # int(input("encrypted signature x = "))
+        encrypted_x = self.crypto_system.ask_cipher_text_interactively(K2, "Enter received encrypted message")
+        encrypted_signature_x = self.crypto_system.ask_cipher_text_interactively(K2, "Enter received encrypted signature")
         decrypted_x = self.crypto_system.decrypt(K2, encrypted_x)
         decrypted_signature_x = self.crypto_system.decrypt(K2, encrypted_signature_x)
         SUCCESS = self.signature_system.verify(f2, decrypted_x, decrypted_signature_x)
+
+        print()
+        print("=" * 79)
+        print()
         if not SUCCESS:
             print(f"WRONG, message not authentic.")
-            print(f"Message is: {self.crypto_system.plaintext2str(K2, decrypted_x)} ; plaintext number is {decrypted_x}")
+            print(f"Message is: {self.crypto_system.plaintext2str(K2, decrypted_x)} ; plaintext number(s): {decrypted_x}")
         else:
-            print(f"OK, message is: {self.crypto_system.plaintext2str(K2, decrypted_x)} ; plaintext number is {decrypted_x}")
+            print(f"OK, message is: {self.crypto_system.plaintext2str(K2, decrypted_x)} ; plaintext number(s): {decrypted_x}")
         
         print()
         print("=" * 79)

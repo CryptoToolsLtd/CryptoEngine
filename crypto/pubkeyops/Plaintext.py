@@ -17,7 +17,7 @@ class Plaintext:
         return f"Plaintext({self.numbers})"
     
     def __str__(self) -> str:
-        raise NotImplementedError("This method must never be invoked ; use to_string() instead")
+        return str(self.numbers)
     
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Plaintext):
