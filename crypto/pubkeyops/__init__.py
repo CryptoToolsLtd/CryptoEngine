@@ -4,5 +4,6 @@ from .Plaintext import *
 from .PubkeyCommunicationDriver import *
 from .PubkeyCryptoCommunicationDriver import *
 from .SignatureSystem import *
+from .SymmetricCryptoSystem import *
 from .ThreepassCryptoSystem import *
 from .ThreepassCryptoCommunicationDriver import *

@@ -1,4 +1,5 @@
 from .elliptic_curve import *
+from .keyexchangeops import *
 from .prime import *
 from .pubkeyops import *
 from .run import *

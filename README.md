@@ -15,6 +15,7 @@ information security.
     - [CryptoRSA\_SignatureRSA](#cryptorsa_signaturersa)
     - [CryptoElGamal\_SignatureElGamal](#cryptoelgamal_signatureelgamal)
     - [CryptoECElGamal\_SignatureECDSA](#cryptoecelgamal_signatureecdsa)
+    - [Many More](#many-more)
   - [Testing](#testing)
   - [Author](#author)
 
@@ -28,7 +29,9 @@ First, `cd` to the project's root.
 
 Run the same command side-by-side (e.g. in two separate
 console windows) to simulate communication between two
-parties over the network.
+parties over the network (only the Girault Key Exchange
+runner can be run only once to get the information of both
+parties).
 
 ```sh
 python3.12 -m crypto.run XXX
@@ -46,16 +49,19 @@ table. (EC means Elliptic Curve-based)
 |    5 | CryptoRSA_SignatureRSA         | RSA Cipher and Signature System combined              |       4096 & 512       |                (5 - 6) & (Instantly)                |
 |    6 | CryptoElGamal_SignatureElGamal | ElGamal Cipher and ElGamal Signature System combined  |       1024 & 128       |                 (2 - 3) & (0.2 - 1)                 |
 |    7 | CryptoECElGamal_SignatureECDSA | EC-ElGamal Cipher and ECDSA Signature System combined |        256 & 10        |          (Instantly (\*\*)) & (Instantly)           |
+|    8 | KeyExchangeDHElGamal           | ElGamal cipher-based Diffie Hellman Key Exchange      |          1024          |                        2 - 3                        |
+|    9 | KeyExchangeDHECElGamal         | EC-ElGamal cipher-based Diffie Hellman Key Exchange   |          256           |                  Instantly (\*\*)                   |
+|   10 | KeyExchangeGirault             | Girault Key Exchange                                  |          1024          |            2 seconds to several minutes             |
 
 (\*) Key Length Interpretation:
 
-- For RSA, it's the bit length of `n = pq`.
+- For RSA cipher and Girault Key Exchange, it's the bit length of `n = pq`.
 - For ElGamal, it's the bit length of `p` the modulus.
-- For EC-ElGamal and EC-Massey-Omura, it's the bit length
+- For EC (elliptic curve)-based systems such as EC-ElGamal and EC-Massey-Omura, it's the bit length
     of `p` as in field F_p over which the elliptic curve is formed.
 - For runners with combined crypto and signature systems, there are
     two numbers of key length - one for the cipher, the other for
-    the signature system.
+    the signature system - separated by the ampersand `&`.
 
 (\*\*) *Instant* time in those cases are due to a pre-selected
 elliptic curve with known properties and is considered safe for
@@ -103,6 +109,10 @@ More images and text reports can be found in the directory `<project_root>/docs/
 [View text](./docs/results/CryptoECElGamal_SignatureECDSA.txt)
 ![CryptoECElGamal_SignatureECDSA](./docs/results/CryptoECElGamal_SignatureECDSA.png)
 
+### Many More
+
+As noted, more results are available as texts and images in `<project_root>/docs/results`.
+
 ## Testing
 
 **Almost every module** has test cases. To run tests written
@@ -123,9 +133,9 @@ To run all tests, execute the following command:
 python3.12 -m crypto test
 ```
 
-There are 59 tests, which take 30 - 35 seconds
-in total to complete on Intel i7-1165G7
-@ 2.80GHz × 4.
+There are 85 tests, which take 50 seconds to
+several minutes in total to complete on
+Intel i7-1165G7 @ 2.80GHz × 4.
 
 ## Author
 

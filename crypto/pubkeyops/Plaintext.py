@@ -19,9 +19,7 @@ class Plaintext:
     def __str__(self) -> str:
         return str(self.numbers)
     
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Plaintext):
-            return False
+    def _compare_numbers_only(self, other: 'Plaintext') -> bool:
         N = len(self.numbers)
         if N != len(other.numbers):
             return False
@@ -29,6 +27,13 @@ class Plaintext:
             if self.numbers[i] != other.numbers[i]:
                 return False
         return True
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Plaintext):
+            return False
+        if self._compare_numbers_only(other):
+            return True
+        return self.to_string() == other.to_string()
     
     @staticmethod
     def from_string(s: str) -> "Plaintext":

@@ -13,6 +13,10 @@ CHOICES: dict[str, Callable[[], None]] = {
     "CryptoRSA_SignatureRSA": run_CryptoRSA_SignatureRSA,
     "CryptoElGamal_SignatureElGamal": run_CryptoElGamal_SignatureElGamal,
     "CryptoECElGamal_SignatureECDSA": run_CryptoECElGamal_SignatureECDSA,
+
+    "KeyExchangeDHElGamal": run_KeyExchangeDHElGamal,
+    "KeyExchangeDHECElGamal": run_KeyExchangeDHECElGamal,
+    "KeyExchangeGirault": run_KeyExchangeGirault,
 }
 
 if __name__ == "__main__":

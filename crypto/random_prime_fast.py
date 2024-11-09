@@ -1,8 +1,13 @@
 from .random_prime_with_fact_of_p_minus_1 import random_prime_with_fact_of_p_minus_1
+from .prime.random_prime import random_prime_with_max_num_iters
 
 # For random_prime_with_fact_of_p_minus_1() to finish in about 5s - 7s (with or without a result),
 # the maximum number of iterations is about 160.
 MAX_NUM_ITERS = 160
+
+# For random_prime_with_max_num_iters() to finish in about 1s - 7s (with or without a result),
+# the maximum number of iterations is about 1000.
+MAX_NUM_ITERS_BASIC = 1000
 
 import sys
 import multiprocessing as mp
@@ -40,11 +45,38 @@ def random_prime_fast_with_fact_of_p_minus_1(lbound: int|str, ubound: int|str, t
 def random_prime_fast(lbound: int|str, ubound: int|str, takes: int, want_p_congruent_to_3_mod_4: bool = False) -> list[int]:
     return [p for p, _ in random_prime_fast_with_fact_of_p_minus_1(lbound=lbound, ubound=ubound, takes=takes, want_p_congruent_to_3_mod_4=want_p_congruent_to_3_mod_4)]
 
+def _worker_basic(lbound: int|str, ubound: int|str) -> int:
+    try:
+        return random_prime_with_max_num_iters(lbound=lbound, ubound=ubound, max_iters=MAX_NUM_ITERS_BASIC)
+    except StopIteration:
+        return 0
+
+
+def random_prime_fast_basic(lbound: int|str, ubound: int|str, takes: int) -> list[int]:
+    outputs_queue = mp.Manager().Queue()
+
+    PROCESSES = mp.cpu_count()
+    outputs: list[int] = []
+
+    with mp.Pool(processes=PROCESSES) as pool:
+        async_outputs = [pool.apply_async(_worker_basic, args=(lbound, ubound), callback=outputs_queue.put) for _ in range(PROCESSES)]
+        for async_output in async_outputs:
+            output = async_output.get()
+            if output != 0:
+                outputs.append(output)
+                if len(outputs) == takes:
+                    # Terminate all the other processes
+                    pool.terminate()
+                    return outputs
+    
+    outputs.extend( random_prime_fast_basic(lbound=lbound, ubound=ubound, takes=takes - len(outputs)) )
+    return outputs
+
 import unittest
 from functools import reduce
 from .prime.is_prime import is_prime
 from .prime.boundaries import compute_lbound_ubound
-class TestRandomPrimeWithFactOfPMinus1(unittest.TestCase):
+class TestRandomPrimeFastWithFactOfPMinus1(unittest.TestCase):
     def i_with_fact(self, lbound: int|str, ubound: int|str, takes: int, want_p_congruent_to_3_mod_4: bool) -> None:
         for p, fact_of_p_minus_1 in random_prime_fast_with_fact_of_p_minus_1(lbound, ubound, takes=takes, want_p_congruent_to_3_mod_4=want_p_congruent_to_3_mod_4):
             self.assertTrue( is_prime(p) )
@@ -80,6 +112,43 @@ class TestRandomPrimeWithFactOfPMinus1(unittest.TestCase):
             self.i_with_fact(lbound, ubound, takes=takes, want_p_congruent_to_3_mod_4=want_p_congruent_to_3_mod_4)
             self.i_without_fact(lbound, ubound, takes=takes, want_p_congruent_to_3_mod_4=want_p_congruent_to_3_mod_4)
 
+    def test_A_trivial(self):
+        i = self.i
+        i(2, 3)
+        i(3, 4)
+        i(4, 5)
+        i(2, 5)
+        i(2, 6)
+    
+    def test_B_normal(self):
+        i = self.i
+        i(100, 1000)
+        i(180, 15000)
+    
+    def test_C_large(self):
+        i = self.i
+        i(100000, 1000000)
+        i("256b", "257b")
+        i("512b", "513b")
+    
+    def test_D_very_large(self):
+        i = self.i
+        i("1024b", "1025b")
+    
+    def test_E_many_takes(self):
+        i = self.i
+        i("256b", "257b", 14)
+
+class TestRandomPrimeFastBasic(unittest.TestCase):
+    def i(self, lbound: int|str, ubound: int|str, takes: int = 2) -> None:
+        for p in random_prime_fast_basic(lbound, ubound, takes=takes):
+            self.assertTrue( is_prime(p) )
+
+            lbound, ubound = compute_lbound_ubound(lbound, ubound)
+            if lbound >= 3:
+                self.assertGreaterEqual(p, lbound)
+            # print(f"lbound = {lbound}, ubound = {ubound}, p = {p}, fact_of_p_minus_1 = {fact_of_p_minus_1}")
+    
     def test_A_trivial(self):
         i = self.i
         i(2, 3)
