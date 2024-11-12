@@ -1,8 +1,9 @@
 import unittest
 from .CHECK_TESTING import CHECK_TESTING
 from .modpower import modpower
+from typing import Literal
 
-def legendre(A: int, B: int) -> int:
+def legendre(A: int, B: int) -> Literal[-1] | Literal[0] | Literal[1]:
     if B % 2 == 0:
         raise RuntimeError(f"invalid B = {B}")
     

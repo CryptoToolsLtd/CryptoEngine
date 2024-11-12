@@ -133,7 +133,7 @@ To run all tests, execute the following command:
 python3.12 -m crypto test
 ```
 
-There are 85 tests, which take 50 seconds to
+There are 91 tests, which take 50 seconds to
 several minutes in total to complete on
 Intel i7-1165G7 @ 2.80GHz × 4.
 

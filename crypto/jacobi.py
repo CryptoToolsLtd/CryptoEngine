@@ -1,7 +1,9 @@
 import unittest
 from .CHECK_TESTING import CHECK_TESTING
+from .factor_out_2s import factor_out_2s
+from typing import Literal
 
-def jacobi(A: int, B: int) -> int:
+def jacobi(A: int, B: int) -> Literal[-1] | Literal[0] | Literal[1]:
     if B == 0:
         raise RuntimeError('invalid')
     if B == 1:
@@ -32,11 +34,7 @@ def jacobi(A: int, B: int) -> int:
 
     if A % 2 == 0:
         # Factor 2
-        a = A
-        exponent_of_power2 = 0
-        while a % 2 == 0:
-            a //= 2
-            exponent_of_power2 += 1
+        a, exponent_of_power2 = factor_out_2s(A)
         return jacobi(a, B) * ( jacobi(2, B) ** exponent_of_power2 )
 
     if A > B:

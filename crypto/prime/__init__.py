@@ -1,6 +1,5 @@
 from .basic_primes import *
 from .boundaries import *
-from .factor_out_2s import *
 from .is_prime_lucas import *
 from .is_prime_miller_rabin import *
 from .is_prime_trivial import *

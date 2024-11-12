@@ -2,7 +2,7 @@ import sys
 sys.set_int_max_str_digits(2147483647) # 2^31 - 1
 
 import typing
-from .factor_out_2s import factor_out_2s
+from ..factor_out_2s import factor_out_2s
 from .lucas_sequence import find_D_P_Q_candidates, lucas_sequence, lucas_sequence_double_subscript
 
 def is_prime_lucas(N: int) -> typing.Literal[False]|typing.Literal["likely"]:

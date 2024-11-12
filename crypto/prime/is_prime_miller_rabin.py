@@ -4,7 +4,7 @@ sys.set_int_max_str_digits(2147483647) # 2^31 - 1
 import typing
 import unittest
 from ..modpower import modpower
-from .factor_out_2s import factor_out_2s
+from ..factor_out_2s import factor_out_2s
 from ..CHECK_TESTING import CHECK_TESTING
 
 def is_prime_miller_rabin(N: int, base: int) -> typing.Literal[False]|typing.Literal["likely"]:
