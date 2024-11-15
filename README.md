@@ -52,10 +52,13 @@ table. (EC means Elliptic Curve-based)
 |    8 | KeyExchangeDHElGamal           | ElGamal cipher-based Diffie Hellman Key Exchange      |          1024          |                        2 - 3                        |
 |    9 | KeyExchangeDHECElGamal         | EC-ElGamal cipher-based Diffie Hellman Key Exchange   |          256           |                  Instantly (\*\*)                   |
 |   10 | KeyExchangeGirault             | Girault Key Exchange                                  |          1024          |            2 seconds to several minutes             |
+|   11 | IDSchemeGQ                     | Guillou-Quisquater (GQ) Identification Scheme         |          4096          |                        5 - 6                        |
+|   12 | IDSchemeFFS                    | Feige-Fiat-Shamir (FFS) Identification Scheme         |          4096          |                        5 - 6                        |
 
 (\*) Key Length Interpretation:
 
-- For RSA cipher and Girault Key Exchange, it's the bit length of `n = pq`.
+- For RSA cipher, Girault Key Exchange, and GQ and FFS Identification Schemes,
+    it's the bit length of `n = pq`.
 - For ElGamal, it's the bit length of `p` the modulus.
 - For EC (elliptic curve)-based systems such as EC-ElGamal and EC-Massey-Omura, it's the bit length
     of `p` as in field F_p over which the elliptic curve is formed.
@@ -133,8 +136,8 @@ To run all tests, execute the following command:
 python3.12 -m crypto test
 ```
 
-There are 91 tests, which take 50 seconds to
-several minutes in total to complete on
+There are 94 tests, which take 190 seconds
+(about 3 minutes) or more in total to complete on
 Intel i7-1165G7 @ 2.80GHz × 4.
 
 ## Author

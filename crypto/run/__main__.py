@@ -17,6 +17,9 @@ CHOICES: dict[str, Callable[[], None]] = {
     "KeyExchangeDHElGamal": run_KeyExchangeDHElGamal,
     "KeyExchangeDHECElGamal": run_KeyExchangeDHECElGamal,
     "KeyExchangeGirault": run_KeyExchangeGirault,
+
+    "IDSchemeGQ": run_IDSchemeGQ,
+    "IDSchemeFFS": run_IDSchemeFFS,
 }
 
 if __name__ == "__main__":

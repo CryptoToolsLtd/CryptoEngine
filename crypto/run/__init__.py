@@ -10,3 +10,6 @@ from .CryptoECElGamal_SignatureECDSA import *
 from .KeyExchangeDHElGamal import *
 from .KeyExchangeDHECElGamal import *
 from .KeyExchangeGirault import *
+
+from .IDSchemeGQ import *
+from .IDSchemeFFS import *
