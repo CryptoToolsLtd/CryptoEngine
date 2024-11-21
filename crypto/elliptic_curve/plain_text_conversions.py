@@ -11,15 +11,15 @@ def convert_plain_number_to_point_on_curve(bit_padding_config: BitPaddingConfig,
     def check_f_x_being_quadratic_residue_mod_p(x: int) -> bool:
         nonlocal f_x, y
         f_x = ( modpower(x, 3, p) + a * x + b ) % p
-        y = find_sq_roots(f_x, p, p % 2 != 0)
-        if y is None:
+        ys = find_sq_roots(f_x, p, p % 2 != 0)
+        if len(ys) == 0:
             return False
-        y = y[0]
+        y = ys[0]
         return True
     
     x = pad(bit_padding_config, number, check_f_x_being_quadratic_residue_mod_p)
     if x is None:
-        raise RuntimeError(f"Could not find a suitable x for the number {number}")
+        raise RuntimeError(f"Could not find a suitable x for the number {number}. Consider increasing padding, or changing the curve.")
     # We have calculated this earlier
     # f_x = ( modpower(x, 3, p) + a * x + b ) % p
     # y = sqrt(f_x) mod p

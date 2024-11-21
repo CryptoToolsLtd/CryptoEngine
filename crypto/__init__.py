@@ -20,3 +20,4 @@ from .random_prime_with_fact_of_p_minus_1 import *
 from .strint import *
 from .compute_h import *
 from .fundamental_discriminants import *
+from .find_sq_roots import *
