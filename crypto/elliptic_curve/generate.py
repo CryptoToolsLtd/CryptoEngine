@@ -28,11 +28,7 @@ def generate_elliptic_curve_with_number_of_points_being_prime(pbits: int) -> Ell
     T = 2 ** pbits
 
     while True:
-        p = random_prime_fast(
-            lbound=T, ubound=T*4, takes=1,
-            # p ≡ 3 mod 4 makes the elliptic curve over F_p more likely to have a prime number of points
-            want_p_congruent_to_3_mod_4=True
-        )[0]
+        p = random_prime_fast(lbound=T, ubound=T*4, takes=1)[0]
 
         p_is_prime = True
 
