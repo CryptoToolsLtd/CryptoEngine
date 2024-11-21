@@ -4,7 +4,7 @@ from .add import add
 from .double_and_add import double_and_add
 
 class EllipticCurve:
-    def __init__(self, p: int, p_is_prime: bool, a: int, b: int, starting_point: tuple[int, int]):
+    def __init__(self, p: int, p_is_prime: bool, a: int, b: int, starting_point: tuple[int, int]) -> None:
         if not p_is_prime:
             # In the future: add algo to count points on curve with non-prime modulo to support this case!
             raise ValueError("p must be prime")
@@ -13,11 +13,18 @@ class EllipticCurve:
         self.b = b
         self.starting_point = starting_point
 
-        self.num_points_on_curve = count_points_on_curve_with_prime_modulo(p, a, b)
+        self._num_points_on_curve = None # lazy load
 
         x, y = starting_point
         assert (4 * modpower(a, 3, p) + 27 * modpower(b, 2, p)) % p != 0
         assert self.is_point_on_curve((x, y))
+    
+    @property
+    def num_points_on_curve(self) -> int:
+        if self._num_points_on_curve is None:
+            p, a, b = self.p, self.a, self.b
+            self._num_points_on_curve = count_points_on_curve_with_prime_modulo(p, a, b)
+        return self._num_points_on_curve
     
     def __repr__(self) -> str:
         return f"EllipticCurve(p = {self.p} , a = {self.a} , b = {self.b} , starting point P = {self.starting_point})"
