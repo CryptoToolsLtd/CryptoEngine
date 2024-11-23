@@ -2,7 +2,7 @@ import unittest
 from .CHECK_TESTING import CHECK_TESTING
 
 def int_sqrt(N: int) -> int:
-    """Returns the integer square root of N, which is x such that abs(x^2 - N) is min."""
+    """Returns the integer square root of N, which is x in Z such that x = round_int_down(sqrt(N))."""
     # https://en.wikipedia.org/wiki/Integer_square_root#Example_implementation_in_C
     if N < 0:
         raise ValueError(f"Invalid op: INT_SQRT({N})")
@@ -18,6 +18,13 @@ def int_sqrt(N: int) -> int:
         x1 = (x0 + N // x0) // 2
     
     return x0
+
+def int_sqrt_up(N: int) -> int:
+    """Returns the integer square root of N, which is x in Z such that x = round_int_up(sqrt(N))."""
+    x = int_sqrt(N)
+    while x * x < N:
+        x += 1
+    return x
 
 class TestIntSqrt(unittest.TestCase):
     def test_perfect_square_trivial(self):

@@ -1,6 +1,10 @@
 from ..legendre import legendre
 import unittest
 from ..CHECK_TESTING import CHECK_TESTING
+# from ..prime import basic_primes, is_prime
+# from ..fact import find_next_prime_from
+# from ..int_sqrt import int_sqrt_up
+# from ..crt import crt
 
 class SpecialEllipticCurve:
     def __init__(self, name: str, p: int, a: int, b: int, order: int, starting_point: tuple[int, int]) -> None:
@@ -11,6 +15,7 @@ class SpecialEllipticCurve:
         self.order = order
         self.starting_point = starting_point
 
+# DO NOT ADD secp112r1 AND sect571k1 - THEY ARE FOR TESTING
 special_curves: list[SpecialEllipticCurve] = [
     SpecialEllipticCurve(
         name="secp192k1",
@@ -85,12 +90,18 @@ special_curves: list[SpecialEllipticCurve] = [
     ),
 ]
 
-def count_points_on_curve_with_prime_modulo(p: int, a: int, b: int) -> int:
+def count_points_on_special_curve_if_any(p: int, a: int, b: int) -> int|None:
     # Special case for special curves
     for special_curve in special_curves:
         if special_curve.p == p and special_curve.a == a and special_curve.b == b:
             return special_curve.order
+    return None
 
+def count_points_on_curve_with_prime_modulo(p: int, a: int, b: int) -> int:
+    count = count_points_on_special_curve_if_any(p, a, b)
+    if count is not None:
+        return count
+    
     count = 0
     for x in range(p):
         y2 = (x**3 + a*x + b) % p
@@ -105,11 +116,54 @@ def count_points_on_curve_with_prime_modulo(p: int, a: int, b: int) -> int:
     # E = EllipticCurve(GF(p), [a, b]) # type: ignore
     # return E.cardinality() # type: ignore
 
+# def count_points_on_curve_with_prime_modulo(p: int, a: int, b: int) -> int:
+#     count = count_points_on_special_curve_if_any(p, a, b)
+#     if count is not None:
+#         return count
+    
+#     if not is_prime(p):
+#         raise NotImplementedError("Sorry, we don't support the case of non-prime moduli yet.")
+
+#     if p.bit_length() <= 10:
+#        return count_points_on_curve_with_prime_modulo_naive(p, a, b)
+    
+#     # Schoof
+#     minProdLExclusive = 4 * int_sqrt_up(p)
+#     L: list[int] = []
+#     prodL = 1
+#     for prime in filter(lambda x: x != 2, basic_primes):
+#         if p % prime != 0:
+#             L.append(prime)
+#             prodL *= prime
+#             if prodL > minProdLExclusive:
+#                 break
+    
+#     while prodL <= minProdLExclusive:
+#         prime = find_next_prime_from(L[-1])
+#         L.append(prime)
+#         prodL *= prime
+    
+#     T: list[int] = []
+#     for l in L:
+#         # Calculate the Frobenius trace modulo l
+#         n = count_points_on_curve_with_prime_modulo(l, a, b)
+#         t = l + 1 - n
+#         T.append(t)
+    
+#     t = crt(T, L)
+#     Hasse_bound = int(2 * (p ** 0.5)) 
+#     while t > Hasse_bound:
+#         t -= prodL
+#     while t < -Hasse_bound:
+#         t += prodL
+#     print(f"trace = {t}")
+#     return p + 1 - t
+
 class TestCountPointsOnCurve(unittest.TestCase):
     def test_A_small(self):
         self.assertEqual(count_points_on_curve_with_prime_modulo(827, 29, 13), 810)
     
-    def test_C_secp256k1(self):
+    def test_B_special_curve_secp256k1(self):
         self.assertEqual(count_points_on_curve_with_prime_modulo(
             # secp256k1
             # https://neuromancer.sk/std/secg/secp256k1
@@ -117,6 +171,14 @@ class TestCountPointsOnCurve(unittest.TestCase):
             0,
             0x0000000000000000000000000000000000000000000000000000000000000007,
         ), 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141)
+    
+    # def test_C_unknown_curve_secp112r1(self):
+    #     # https://neuromancer.sk/std/secg/secp112r1
+    #     self.assertEqual(count_points_on_curve_with_prime_modulo(
+    #         0xdb7c2abf62e35e668076bead208b,
+    #         0xdb7c2abf62e35e668076bead2088,
+    #         0x659ef8ba043916eede8911702b22,
+    #     ), 0xdb7c2abf62e35e7628dfac6561c5)
 
 if __name__ == "__main__":
     CHECK_TESTING()
